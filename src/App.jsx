@@ -21,14 +21,13 @@ function useViewport() {
   const [width, setWidth] = useState(window.innerWidth);
 
   useEffect(() => {
-    function onResize() {
-      setWidth(window.innerWidth);
-    }
+    const onResize = () => setWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   return {
+    width,
     isMobile: width < 900,
     isTablet: width >= 900 && width < 1280,
     isDesktop: width >= 1280,
@@ -39,24 +38,22 @@ function createBoards() {
   return Array.from({ length: 9 }, () => Array(9).fill(null));
 }
 
-function createUltimateState(hostName = "Host") {
+function createUltimateState(xName = "Spieler X", oName = "Spieler O") {
   return {
     boards: createBoards(),
     currentPlayer: "X",
     nextBoard: null,
     history: [],
     players: {
-      X: hostName,
-      O: null,
+      X: xName,
+      O: oName,
     },
   };
 }
 
 function getWinner(cells) {
   for (const [a, b, c] of WIN_LINES) {
-    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
-      return cells[a];
-    }
+    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
   }
   return null;
 }
@@ -70,7 +67,6 @@ function getMeta(boards) {
   const draws = boards.map((board, i) => !winners[i] && isFull(board));
   const bigWinner = getWinner(winners);
   const bigDraw = !bigWinner && winners.every((w, i) => w || draws[i]);
-
   return { winners, draws, bigWinner, bigDraw };
 }
 
@@ -78,7 +74,6 @@ function getActiveBoards(boards, nextBoard, meta) {
   if (nextBoard !== null && !meta.winners[nextBoard] && !meta.draws[nextBoard]) {
     return [nextBoard];
   }
-
   return boards.map((_, i) => i).filter((i) => !meta.winners[i] && !meta.draws[i]);
 }
 
@@ -92,7 +87,7 @@ function shellStyle(isMobile) {
     background: "linear-gradient(180deg, #0b1120 0%, #111827 55%, #0f172a 100%)",
     color: "white",
     fontFamily: "Arial, sans-serif",
-    padding: isMobile ? "12px" : "20px",
+    padding: isMobile ? "10px" : "20px",
     boxSizing: "border-box",
   };
 }
@@ -103,7 +98,7 @@ function containerStyle(isDesktop) {
     maxWidth: isDesktop ? "1600px" : "1400px",
     margin: "0 auto",
     display: "grid",
-    gap: "18px",
+    gap: "16px",
   };
 }
 
@@ -111,8 +106,8 @@ function cardStyle() {
   return {
     background: "rgba(15, 23, 42, 0.92)",
     border: "1px solid rgba(148, 163, 184, 0.18)",
-    borderRadius: "20px",
-    padding: "18px",
+    borderRadius: "18px",
+    padding: "16px",
     boxSizing: "border-box",
     boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
   };
@@ -142,7 +137,7 @@ function buttonStyle(bg = "#38bdf8", color = "#07111f") {
   };
 }
 
-function Cell({ value, disabled, onClick }) {
+function Cell({ value, disabled, onClick, isMobile }) {
   return (
     <button
       onClick={onClick}
@@ -151,12 +146,13 @@ function Cell({ value, disabled, onClick }) {
         width: "100%",
         aspectRatio: "1 / 1",
         border: "1px solid #475569",
-        borderRadius: "10px",
+        borderRadius: isMobile ? "7px" : "10px",
         background: disabled ? "#1e293b" : "#334155",
         color: "white",
-        fontSize: "clamp(18px, 2vw, 24px)",
+        fontSize: isMobile ? "16px" : "clamp(18px, 2vw, 24px)",
         fontWeight: "bold",
         cursor: disabled ? "not-allowed" : "pointer",
+        padding: 0,
       }}
     >
       {value}
@@ -172,24 +168,27 @@ function SmallBoard({
   isActive,
   gameOver,
   onMove,
+  isMobile,
 }) {
   return (
     <div
       style={{
         position: "relative",
-        padding: "6px",
-        borderRadius: "14px",
+        padding: isMobile ? "3px" : "6px",
+        borderRadius: isMobile ? "10px" : "14px",
         background: isActive ? "#1d4ed8" : "#0f172a",
         border: isActive ? "2px solid #7dd3fc" : "2px solid #334155",
+        minWidth: 0,
       }}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? "3px" : "4px" }}>
         {board.map((cell, cellIndex) => (
           <Cell
             key={cellIndex}
             value={cell}
             disabled={gameOver || !!cell || !!boardWinner || boardDraw || !isActive}
             onClick={() => onMove(boardIndex, cellIndex)}
+            isMobile={isMobile}
           />
         ))}
       </div>
@@ -199,12 +198,12 @@ function SmallBoard({
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: "14px",
+            borderRadius: isMobile ? "10px" : "14px",
             background: "rgba(0,0,0,0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "clamp(28px, 4vw, 42px)",
+            fontSize: isMobile ? "24px" : "clamp(28px, 4vw, 42px)",
             fontWeight: "bold",
           }}
         >
@@ -220,19 +219,26 @@ function Suggestions({ playerName }) {
   const [details, setDetails] = useState("");
   const [message, setMessage] = useState("");
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function loadSuggestions() {
-      if (!supabase) return;
-      const { data, error } = await supabase
-        .from("game_suggestions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(8);
+  async function loadSuggestions() {
+    if (!supabase) return;
 
-      if (!error && data) setItems(data);
+    const { data, error } = await supabase
+      .from("game_suggestions")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (error) {
+      setMessage("Fehler beim Laden: " + error.message);
+      return;
     }
 
+    setItems(data || []);
+  }
+
+  useEffect(() => {
     loadSuggestions();
   }, []);
 
@@ -249,22 +255,31 @@ function Suggestions({ playerName }) {
       return;
     }
 
+    setLoading(true);
+    setMessage("");
+
     const { data, error } = await supabase
       .from("game_suggestions")
-      .insert({
-        player_name: playerName?.trim() || "Anonym",
-        game_name: gameName.trim(),
-        details: details.trim() || null,
-      })
-      .select()
-      .single();
+      .insert([
+        {
+          player_name: playerName?.trim() || "Anonym",
+          game_name: gameName.trim(),
+          details: details.trim() || null,
+        },
+      ])
+      .select();
+
+    setLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage("Fehler: " + error.message);
       return;
     }
 
-    setItems((prev) => [data, ...prev].slice(0, 8));
+    if (data && data.length > 0) {
+      setItems((prev) => [data[0], ...prev].slice(0, 8));
+    }
+
     setGameName("");
     setDetails("");
     setMessage("Vorschlag gespeichert.");
@@ -290,8 +305,12 @@ function Suggestions({ playerName }) {
           style={{ ...inputStyle(), resize: "vertical" }}
         />
 
-        <button type="submit" style={{ ...buttonStyle("#22c55e"), marginTop: "12px" }}>
-          Vorschlag absenden
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ ...buttonStyle("#22c55e"), marginTop: "12px" }}
+        >
+          {loading ? "Speichert..." : "Vorschlag absenden"}
         </button>
       </form>
 
@@ -373,9 +392,9 @@ function HomeScreen({
             gridTemplateColumns: isMobile
               ? "1fr"
               : isTablet
-              ? "1.25fr 0.95fr"
+              ? "1.2fr 1fr"
               : "1.7fr 1fr",
-            gap: "18px",
+            gap: "16px",
             alignItems: "start",
           }}
         >
@@ -383,13 +402,7 @@ function HomeScreen({
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
 
             <div style={{ display: "grid", gap: "12px" }}>
-              <div
-                style={{
-                  ...cardStyle(),
-                  padding: "16px",
-                  background: "#1e3a8a",
-                }}
-              >
+              <div style={{ ...cardStyle(), padding: "16px", background: "#1e3a8a" }}>
                 <div
                   style={{
                     display: "flex",
@@ -417,84 +430,23 @@ function HomeScreen({
                   Lokal 1v1 oder Online mit Raumcode.
                 </p>
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <button onClick={onStartLocal} style={buttonStyle("#22c55e")}>
                     Lokal 1v1
                   </button>
-
                   <button onClick={onStartOnline} style={buttonStyle("#38bdf8")}>
                     Online 1v1
                   </button>
                 </div>
               </div>
 
-              <div
-                style={{
-                  ...cardStyle(),
-                  padding: "16px",
-                  background: "#0f172a",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong style={{ fontSize: "20px" }}>Classic Tic-Tac-Toe</strong>
-                  <span
-                    style={{
-                      background: "#f59e0b",
-                      color: "#07111f",
-                      borderRadius: "999px",
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Bald
-                  </span>
-                </div>
+              <div style={{ ...cardStyle(), padding: "16px", background: "#0f172a" }}>
+                <strong style={{ fontSize: "20px" }}>Classic Tic-Tac-Toe</strong>
                 <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
               </div>
 
-              <div
-                style={{
-                  ...cardStyle(),
-                  padding: "16px",
-                  background: "#0f172a",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong style={{ fontSize: "20px" }}>Connect Four</strong>
-                  <span
-                    style={{
-                      background: "#f59e0b",
-                      color: "#07111f",
-                      borderRadius: "999px",
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Bald
-                  </span>
-                </div>
+              <div style={{ ...cardStyle(), padding: "16px", background: "#0f172a" }}>
+                <strong style={{ fontSize: "20px" }}>Connect Four</strong>
                 <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
               </div>
             </div>
@@ -548,8 +500,8 @@ function OnlineLobbyScreen({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1.1fr 1fr",
-            gap: "18px",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: "16px",
           }}
         >
           <div style={cardStyle()}>
@@ -607,12 +559,6 @@ function UltimateBoard({
   else if (isLocal) status = `Spieler ${gameState.currentPlayer} ist dran`;
   else if (gameState.currentPlayer === mySymbol) status = `Du bist dran (${mySymbol})`;
   else status = `Warte auf ${gameState.currentPlayer}`;
-
-  const boardGridColumns = isMobile
-    ? "repeat(3, minmax(92px, 1fr))"
-    : isTablet
-    ? "repeat(3, minmax(135px, 1fr))"
-    : "repeat(3, minmax(180px, 1fr))";
 
   return (
     <div style={shellStyle(isMobile)}>
@@ -689,23 +635,33 @@ function UltimateBoard({
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: boardGridColumns,
-              gap: isMobile ? "8px" : "12px",
+              width: "100%",
+              overflowX: "hidden",
             }}
           >
-            {gameState.boards.map((board, boardIndex) => (
-              <SmallBoard
-                key={boardIndex}
-                board={board}
-                boardIndex={boardIndex}
-                boardWinner={meta.winners[boardIndex]}
-                boardDraw={meta.draws[boardIndex]}
-                isActive={activeBoards.includes(boardIndex)}
-                gameOver={!!meta.bigWinner || !!meta.bigDraw}
-                onMove={onMove}
-              />
-            ))}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: isMobile ? "4px" : isTablet ? "8px" : "12px",
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
+              {gameState.boards.map((board, boardIndex) => (
+                <SmallBoard
+                  key={boardIndex}
+                  board={board}
+                  boardIndex={boardIndex}
+                  boardWinner={meta.winners[boardIndex]}
+                  boardDraw={meta.draws[boardIndex]}
+                  isActive={activeBoards.includes(boardIndex)}
+                  gameOver={!!meta.bigWinner || !!meta.bigDraw}
+                  onMove={onMove}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -724,10 +680,9 @@ export default function App() {
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
 
-  const [localGame, setLocalGame] = useState(() => ({
-    ...createUltimateState("Spieler X"),
-    players: { X: "Spieler X", O: "Spieler O" },
-  }));
+  const [localGame, setLocalGame] = useState(() =>
+    createUltimateState("Spieler X", "Spieler O")
+  );
 
   useEffect(() => {
     if (!supabase || !roomCode || screen !== "online-room") return;
@@ -754,10 +709,7 @@ export default function App() {
   }, [roomCode, screen]);
 
   function resetLocalGame() {
-    setLocalGame({
-      ...createUltimateState("Spieler X"),
-      players: { X: "Spieler X", O: "Spieler O" },
-    });
+    setLocalGame(createUltimateState("Spieler X", "Spieler O"));
   }
 
   function handleLocalMove(boardIndex, cellIndex) {
@@ -777,14 +729,7 @@ export default function App() {
       boards: nextBoards,
       currentPlayer: gameState.currentPlayer === "X" ? "O" : "X",
       nextBoard: cellIndex,
-      history: [
-        ...gameState.history,
-        {
-          boards: gameState.boards.map((b) => [...b]),
-          currentPlayer: gameState.currentPlayer,
-          nextBoard: gameState.nextBoard,
-        },
-      ],
+      history: [...gameState.history],
     });
   }
 
@@ -796,7 +741,7 @@ export default function App() {
 
     setError("");
     const code = randomCode();
-    const state = createUltimateState(playerName?.trim() || "Host");
+    const state = createUltimateState(playerName?.trim() || "Host", null);
 
     const { data, error } = await supabase
       .from("utt_rooms")
@@ -893,14 +838,7 @@ export default function App() {
       boards: nextBoards,
       currentPlayer: mySymbol === "X" ? "O" : "X",
       nextBoard: cellIndex,
-      history: [
-        ...gameState.history,
-        {
-          boards: gameState.boards.map((b) => [...b]),
-          currentPlayer: gameState.currentPlayer,
-          nextBoard: gameState.nextBoard,
-        },
-      ],
+      history: [...gameState.history],
     };
 
     await saveOnlineState(nextState);
@@ -908,9 +846,7 @@ export default function App() {
 
   async function resetOnlineRoom() {
     if (!room) return;
-
-    const nextState = createUltimateState(room.state.players?.X || "Host");
-    nextState.players.O = room.state.players?.O || null;
+    const nextState = createUltimateState(room.state.players?.X || "Host", room.state.players?.O || null);
     await saveOnlineState(nextState);
   }
 
