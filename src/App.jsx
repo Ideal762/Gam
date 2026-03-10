@@ -21,7 +21,7 @@ const WIN_LINES = [
 const GAME_CATALOG = [
   {
     id: "ultimate-ttt",
-    title: "Ultimate Tic-Tac-Toe",
+    title: "GAM Games",
     description: "Das aktuelle Hauptspiel mit Online-Räumen.",
     status: "live",
   },
@@ -382,7 +382,7 @@ function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, 
         <SectionCard>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "18px", flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: "42px" }}>Isa Game Hub</h1>
+              <h1 style={{ margin: 0, fontSize: "42px" }}>GAM Games</h1>
               <p style={{ color: "#cbd5e1", marginBottom: 0 }}>
                 Ein Menü mit mehreren Spielen. Ultimate Tic-Tac-Toe ist nur das erste Live-Spiel.
               </p>
@@ -452,7 +452,7 @@ function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInp
         <SectionCard>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: "36px" }}>Ultimate Tic-Tac-Toe Online</h1>
+              <h1 style={{ margin: 0, fontSize: "36px" }}>GAM Games</h1>
               <p style={{ color: "#cbd5e1", marginBottom: 0 }}>Raum erstellen oder mit Code beitreten.</p>
             </div>
             <button
