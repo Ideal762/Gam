@@ -45,6 +45,21 @@ const GAME_CATALOG = [
   },
 ];
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
+
+  useEffect(() => {
+    function onResize() {
+      setIsMobile(window.innerWidth < 900);
+    }
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return isMobile;
+}
+
 function getWinner(cells) {
   for (const [a, b, c] of WIN_LINES) {
     if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
@@ -377,7 +392,7 @@ function SuggestionPanel({ playerName }) {
   );
 }
 
-function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, onStartOnline }) {
+function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, onStartOnline, isMobile }) {
   return (
     <Shell>
       <div style={{ display: "grid", gap: "18px" }}>
@@ -408,7 +423,7 @@ function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, 
           </div>
         </SectionCard>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: "18px", alignItems: "start" }}>
           <SectionCard>
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
             <div style={{ display: "grid", gap: "12px" }}>
@@ -447,7 +462,7 @@ function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, 
   );
 }
 
-function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInput, setRoomCodeInput, loading, error }) {
+function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInput, setRoomCodeInput, loading, error, isMobile }) {
   return (
     <Shell>
       <div style={{ display: "grid", gap: "18px" }}>
@@ -473,7 +488,7 @@ function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInp
           </div>
         </SectionCard>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "18px" }}>
           <SectionCard>
             <h2 style={{ marginTop: 0 }}>Raum erstellen</h2>
             <p style={{ color: "#cbd5e1" }}>Du bist Spieler X. Name: {playerName || "Spieler"}</p>
@@ -535,7 +550,7 @@ function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInp
   );
 }
 
-function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
+function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset, isMobile }) {
   const gameState = room?.state || createGameState();
   const meta = computeMeta(gameState.boards);
   const activeBoards = getActiveBoards(gameState.boards, gameState.nextBoard, meta);
@@ -575,7 +590,7 @@ function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
           </div>
         </SectionCard>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(220px, 1fr))", gap: "12px" }}>
           <SectionCard>
             <div style={{ color: "#94a3b8", fontSize: "13px" }}>Du spielst als</div>
             <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px" }}>{mySymbol}</div>
@@ -611,7 +626,7 @@ function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(105px, 1fr))", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, minmax(92px, 1fr))" : "repeat(3, minmax(180px, 1fr))", gap: isMobile ? "8px" : "12px" }}>
             {gameState.boards.map((board, boardIndex) => (
               <SmallBoard
                 key={boardIndex}
@@ -632,6 +647,7 @@ function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
 }
 
 export default function App() {
+  const isMobile = useIsMobile();
   const [screen, setScreen] = useState("home");
   const [playerName, setPlayerName] = useState("Isa");
   const [selectedGame, setSelectedGame] = useState("ultimate-ttt");
@@ -815,6 +831,7 @@ export default function App() {
         setPlayerName={setPlayerName}
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
+        isMobile={isMobile}
         onStartOnline={() => {
           setError("");
           setScreen("online-lobby");
@@ -831,6 +848,7 @@ export default function App() {
         setRoomCodeInput={setRoomCodeInput}
         loading={loading}
         error={error}
+        isMobile={isMobile}
         onBack={() => setScreen("home")}
         onCreateRoom={createRoom}
         onJoinRoom={joinRoom}
@@ -846,6 +864,7 @@ export default function App() {
       onLeave={leaveRoom}
       onMove={handleMove}
       onReset={resetRoom}
+      isMobile={isMobile}
     />
   );
 }
