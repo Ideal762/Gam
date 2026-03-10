@@ -104,7 +104,7 @@ function Shell({ children }) {
         boxSizing: "border-box",
       }}
     >
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>{children}</div>
+      <div style={{ width: "100%", margin: "0 auto" }}>{children}</div>
     </div>
   );
 }
@@ -406,7 +406,7 @@ function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, 
           </div>
         </SectionCard>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "18px" }}>
           <SectionCard>
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
             <div style={{ display: "grid", gap: "12px" }}>
