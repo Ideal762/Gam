@@ -17,33 +17,6 @@ const WIN_LINES = [
   [2, 4, 6],
 ];
 
-const GAMES = [
-  {
-    id: "ultimate",
-    title: "Ultimate Tic-Tac-Toe",
-    desc: "Online spielbar mit Raumcode.",
-    live: true,
-  },
-  {
-    id: "classic",
-    title: "Classic Tic-Tac-Toe",
-    desc: "Kommt später.",
-    live: false,
-  },
-  {
-    id: "connect4",
-    title: "Connect Four",
-    desc: "Kommt später.",
-    live: false,
-  },
-  {
-    id: "memory",
-    title: "Memory Duel",
-    desc: "Kommt später.",
-    live: false,
-  },
-];
-
 function useViewport() {
   const [width, setWidth] = useState(window.innerWidth);
 
@@ -51,13 +24,11 @@ function useViewport() {
     function onResize() {
       setWidth(window.innerWidth);
     }
-
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   return {
-    width,
     isMobile: width < 900,
     isTablet: width >= 900 && width < 1280,
     isDesktop: width >= 1280,
@@ -68,13 +39,16 @@ function createBoards() {
   return Array.from({ length: 9 }, () => Array(9).fill(null));
 }
 
-function createState(host = "Host") {
+function createUltimateState(hostName = "Host") {
   return {
     boards: createBoards(),
     currentPlayer: "X",
     nextBoard: null,
     history: [],
-    players: { X: host, O: null },
+    players: {
+      X: hostName,
+      O: null,
+    },
   };
 }
 
@@ -92,7 +66,7 @@ function isFull(cells) {
 }
 
 function getMeta(boards) {
-  const winners = boards.map(getWinner);
+  const winners = boards.map((board) => getWinner(board));
   const draws = boards.map((board, i) => !winners[i] && isFull(board));
   const bigWinner = getWinner(winners);
   const bigDraw = !bigWinner && winners.every((w, i) => w || draws[i]);
@@ -144,18 +118,6 @@ function cardStyle() {
   };
 }
 
-function buttonStyle(bg = "#38bdf8", color = "#07111f") {
-  return {
-    padding: "12px 16px",
-    borderRadius: "12px",
-    border: "none",
-    background: bg,
-    color,
-    fontWeight: "bold",
-    cursor: "pointer",
-  };
-}
-
 function inputStyle() {
   return {
     width: "100%",
@@ -165,6 +127,18 @@ function inputStyle() {
     background: "#020617",
     color: "white",
     boxSizing: "border-box",
+  };
+}
+
+function buttonStyle(bg = "#38bdf8", color = "#07111f") {
+  return {
+    padding: "12px 16px",
+    borderRadius: "12px",
+    border: "none",
+    background: bg,
+    color,
+    fontWeight: "bold",
+    cursor: "pointer",
   };
 }
 
@@ -248,37 +222,37 @@ function Suggestions({ playerName }) {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    async function load() {
+    async function loadSuggestions() {
       if (!supabase) return;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("game_suggestions")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(8);
 
-      if (data) setItems(data);
+      if (!error && data) setItems(data);
     }
 
-    load();
+    loadSuggestions();
   }, []);
 
-  async function submit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!supabase) {
-      setMessage("Supabase fehlt.");
+      setMessage("Supabase ist nicht eingerichtet.");
       return;
     }
 
     if (!gameName.trim()) {
-      setMessage("Bitte Spielnamen eingeben.");
+      setMessage("Bitte einen Spielnamen eingeben.");
       return;
     }
 
     const { data, error } = await supabase
       .from("game_suggestions")
       .insert({
-        player_name: playerName || "Anonym",
+        player_name: playerName?.trim() || "Anonym",
         game_name: gameName.trim(),
         details: details.trim() || null,
       })
@@ -300,7 +274,7 @@ function Suggestions({ playerName }) {
     <div style={cardStyle()}>
       <h2 style={{ marginTop: 0 }}>Spiel vorschlagen</h2>
 
-      <form onSubmit={submit}>
+      <form onSubmit={handleSubmit}>
         <input
           value={gameName}
           onChange={(e) => setGameName(e.target.value)}
@@ -352,12 +326,11 @@ function Suggestions({ playerName }) {
   );
 }
 
-function Home({
+function HomeScreen({
   playerName,
   setPlayerName,
-  selectedGame,
-  setSelectedGame,
-  onOpenGame,
+  onStartLocal,
+  onStartOnline,
   isMobile,
   isTablet,
   isDesktop,
@@ -387,6 +360,7 @@ function Home({
               <input
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Name eingeben"
                 style={inputStyle()}
               />
             </div>
@@ -409,60 +383,121 @@ function Home({
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
 
             <div style={{ display: "grid", gap: "12px" }}>
-              {GAMES.map((game) => (
-                <button
-                  key={game.id}
-                  onClick={() => setSelectedGame(game.id)}
+              <div
+                style={{
+                  ...cardStyle(),
+                  padding: "16px",
+                  background: "#1e3a8a",
+                }}
+              >
+                <div
                   style={{
-                    textAlign: "left",
-                    cursor: "pointer",
-                    background: selectedGame === game.id ? "#1e3a8a" : "#0f172a",
-                    border: "1px solid rgba(148, 163, 184, 0.18)",
-                    borderRadius: "16px",
-                    padding: "16px",
-                    color: "white",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    alignItems: "center",
                   }}
                 >
-                  <div
+                  <strong style={{ fontSize: "20px" }}>Ultimate Tic-Tac-Toe</strong>
+                  <span
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
-                      alignItems: "center",
+                      background: "#22c55e",
+                      color: "#07111f",
+                      borderRadius: "999px",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
                     }}
                   >
-                    <strong style={{ fontSize: "20px" }}>{game.title}</strong>
-                    <span
-                      style={{
-                        background: game.live ? "#22c55e" : "#f59e0b",
-                        color: "#07111f",
-                        borderRadius: "999px",
-                        padding: "4px 10px",
-                        fontSize: "12px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {game.live ? "Live" : "Bald"}
-                    </span>
-                  </div>
-                  <p style={{ marginBottom: 0, color: "#cbd5e1" }}>{game.desc}</p>
-                </button>
-              ))}
-            </div>
+                    Live
+                  </span>
+                </div>
 
-            <button
-              onClick={onOpenGame}
-              disabled={selectedGame !== "ultimate"}
-              style={{
-                ...buttonStyle(),
-                marginTop: "16px",
-                background: selectedGame === "ultimate" ? "#38bdf8" : "#475569",
-              }}
-            >
-              {selectedGame === "ultimate"
-                ? "Ultimate Tic-Tac-Toe öffnen"
-                : "Dieses Spiel kommt später"}
-            </button>
+                <p style={{ marginBottom: "14px", color: "#cbd5e1" }}>
+                  Lokal 1v1 oder Online mit Raumcode.
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button onClick={onStartLocal} style={buttonStyle("#22c55e")}>
+                    Lokal 1v1
+                  </button>
+
+                  <button onClick={onStartOnline} style={buttonStyle("#38bdf8")}>
+                    Online 1v1
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  ...cardStyle(),
+                  padding: "16px",
+                  background: "#0f172a",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong style={{ fontSize: "20px" }}>Classic Tic-Tac-Toe</strong>
+                  <span
+                    style={{
+                      background: "#f59e0b",
+                      color: "#07111f",
+                      borderRadius: "999px",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Bald
+                  </span>
+                </div>
+                <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
+              </div>
+
+              <div
+                style={{
+                  ...cardStyle(),
+                  padding: "16px",
+                  background: "#0f172a",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong style={{ fontSize: "20px" }}>Connect Four</strong>
+                  <span
+                    style={{
+                      background: "#f59e0b",
+                      color: "#07111f",
+                      borderRadius: "999px",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Bald
+                  </span>
+                </div>
+                <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
+              </div>
+            </div>
           </div>
 
           <Suggestions playerName={playerName} />
@@ -472,7 +507,7 @@ function Home({
   );
 }
 
-function Lobby({
+function OnlineLobbyScreen({
   playerName,
   roomCodeInput,
   setRoomCodeInput,
@@ -519,7 +554,9 @@ function Lobby({
         >
           <div style={cardStyle()}>
             <h2 style={{ marginTop: 0 }}>Raum erstellen</h2>
-            <p style={{ color: "#cbd5e1" }}>Du bist Spieler X. Name: {playerName}</p>
+            <p style={{ color: "#cbd5e1" }}>
+              Du bist Spieler X. Name: {playerName?.trim() || "Spieler"}
+            </p>
             <button onClick={onCreate} style={buttonStyle("#22c55e")}>
               Raum erstellen
             </button>
@@ -545,19 +582,19 @@ function Lobby({
   );
 }
 
-function Room({
+function UltimateBoard({
+  title,
   roomCode,
   mySymbol,
-  room,
-  onLeave,
+  gameState,
+  onBack,
   onMove,
   onReset,
   isMobile,
   isTablet,
   isDesktop,
+  isLocal,
 }) {
-  const gameState = room?.state || createState();
-
   const meta = useMemo(() => getMeta(gameState.boards), [gameState.boards]);
   const activeBoards = useMemo(
     () => getActiveBoards(gameState.boards, gameState.nextBoard, meta),
@@ -567,6 +604,7 @@ function Room({
   let status = "";
   if (meta.bigWinner) status = `Spieler ${meta.bigWinner} gewinnt das Spiel`;
   else if (meta.bigDraw) status = "Unentschieden";
+  else if (isLocal) status = `Spieler ${gameState.currentPlayer} ist dran`;
   else if (gameState.currentPlayer === mySymbol) status = `Du bist dran (${mySymbol})`;
   else status = `Warte auf ${gameState.currentPlayer}`;
 
@@ -589,12 +627,18 @@ function Room({
               alignItems: "center",
             }}
           >
-            <button onClick={onLeave} style={buttonStyle("#334155", "white")}>
-              ← Lobby
+            <button onClick={onBack} style={buttonStyle("#334155", "white")}>
+              ← Zurück
             </button>
 
             <div style={{ color: "#cbd5e1" }}>
-              Raumcode: <strong style={{ color: "white" }}>{roomCode}</strong>
+              {isLocal ? (
+                <strong style={{ color: "white" }}>Lokal 1v1</strong>
+              ) : (
+                <>
+                  Raumcode: <strong style={{ color: "white" }}>{roomCode}</strong>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -607,28 +651,32 @@ function Room({
           }}
         >
           <div style={cardStyle()}>
-            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Du spielst als</div>
-            <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px" }}>{mySymbol}</div>
+            <div style={{ color: "#94a3b8", fontSize: "13px" }}>
+              {isLocal ? "Aktiver Spieler" : "Du spielst als"}
+            </div>
+            <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px" }}>
+              {isLocal ? gameState.currentPlayer : mySymbol}
+            </div>
           </div>
 
           <div style={cardStyle()}>
             <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler X</div>
             <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>
-              {gameState.players?.X || "Wartet..."}
+              {gameState.players?.X || "Spieler X"}
             </div>
           </div>
 
           <div style={cardStyle()}>
             <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler O</div>
             <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>
-              {gameState.players?.O || "Wartet..."}
+              {gameState.players?.O || "Spieler O"}
             </div>
           </div>
         </div>
 
         <div style={cardStyle()}>
           <h1 style={{ textAlign: "center", marginTop: 0, fontSize: "clamp(28px, 4vw, 40px)" }}>
-            GAM Games
+            {title}
           </h1>
 
           <p style={{ textAlign: "center", color: "#7dd3fc", fontSize: "18px" }}>{status}</p>
@@ -669,16 +717,20 @@ export default function App() {
   const { isMobile, isTablet, isDesktop } = useViewport();
 
   const [screen, setScreen] = useState("home");
-  const [playerName, setPlayerName] = useState("Isa");
-  const [selectedGame, setSelectedGame] = useState("ultimate");
+  const [playerName, setPlayerName] = useState("");
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [mySymbol, setMySymbol] = useState(null);
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
 
+  const [localGame, setLocalGame] = useState(() => ({
+    ...createUltimateState("Spieler X"),
+    players: { X: "Spieler X", O: "Spieler O" },
+  }));
+
   useEffect(() => {
-    if (!supabase || !roomCode || screen !== "room") return;
+    if (!supabase || !roomCode || screen !== "online-room") return;
 
     const channel = supabase
       .channel(`utt-room-${roomCode}`)
@@ -701,6 +753,41 @@ export default function App() {
     };
   }, [roomCode, screen]);
 
+  function resetLocalGame() {
+    setLocalGame({
+      ...createUltimateState("Spieler X"),
+      players: { X: "Spieler X", O: "Spieler O" },
+    });
+  }
+
+  function handleLocalMove(boardIndex, cellIndex) {
+    const gameState = localGame;
+    const meta = getMeta(gameState.boards);
+    const activeBoards = getActiveBoards(gameState.boards, gameState.nextBoard, meta);
+
+    if (!activeBoards.includes(boardIndex)) return;
+    if (gameState.boards[boardIndex][cellIndex]) return;
+    if (meta.bigWinner || meta.bigDraw) return;
+
+    const nextBoards = gameState.boards.map((b) => [...b]);
+    nextBoards[boardIndex][cellIndex] = gameState.currentPlayer;
+
+    setLocalGame({
+      ...gameState,
+      boards: nextBoards,
+      currentPlayer: gameState.currentPlayer === "X" ? "O" : "X",
+      nextBoard: cellIndex,
+      history: [
+        ...gameState.history,
+        {
+          boards: gameState.boards.map((b) => [...b]),
+          currentPlayer: gameState.currentPlayer,
+          nextBoard: gameState.nextBoard,
+        },
+      ],
+    });
+  }
+
   async function createRoom() {
     if (!supabase) {
       setError("Supabase ist nicht eingerichtet.");
@@ -709,7 +796,7 @@ export default function App() {
 
     setError("");
     const code = randomCode();
-    const state = createState(playerName || "Host");
+    const state = createUltimateState(playerName?.trim() || "Host");
 
     const { data, error } = await supabase
       .from("utt_rooms")
@@ -725,7 +812,7 @@ export default function App() {
     setRoom(data);
     setRoomCode(code);
     setMySymbol("X");
-    setScreen("room");
+    setScreen("online-room");
   }
 
   async function joinRoom() {
@@ -753,7 +840,7 @@ export default function App() {
       ...data.state,
       players: {
         ...data.state.players,
-        O: data.state.players?.O || playerName || "Gast",
+        O: data.state.players?.O || playerName?.trim() || "Gast",
       },
     };
 
@@ -772,21 +859,21 @@ export default function App() {
     setRoom(updated);
     setRoomCode(code);
     setMySymbol("O");
-    setScreen("room");
+    setScreen("online-room");
   }
 
-  async function saveState(nextState) {
-    const { data } = await supabase
+  async function saveOnlineState(nextState) {
+    const { data, error } = await supabase
       .from("utt_rooms")
       .update({ state: nextState })
       .eq("room_code", roomCode)
       .select()
       .single();
 
-    if (data) setRoom(data);
+    if (!error && data) setRoom(data);
   }
 
-  async function handleMove(boardIndex, cellIndex) {
+  async function handleOnlineMove(boardIndex, cellIndex) {
     if (!room || !mySymbol) return;
 
     const gameState = room.state;
@@ -816,18 +903,19 @@ export default function App() {
       ],
     };
 
-    await saveState(nextState);
+    await saveOnlineState(nextState);
   }
 
-  async function resetRoom() {
+  async function resetOnlineRoom() {
     if (!room) return;
-    const nextState = createState(room.state.players?.X || "Host");
+
+    const nextState = createUltimateState(room.state.players?.X || "Host");
     nextState.players.O = room.state.players?.O || null;
-    await saveState(nextState);
+    await saveOnlineState(nextState);
   }
 
-  function leaveRoom() {
-    setScreen("lobby");
+  function leaveOnlineRoom() {
+    setScreen("online-lobby");
     setRoomCode("");
     setRoom(null);
     setMySymbol(null);
@@ -836,12 +924,11 @@ export default function App() {
 
   if (screen === "home") {
     return (
-      <Home
+      <HomeScreen
         playerName={playerName}
         setPlayerName={setPlayerName}
-        selectedGame={selectedGame}
-        setSelectedGame={setSelectedGame}
-        onOpenGame={() => setScreen("lobby")}
+        onStartLocal={() => setScreen("local-game")}
+        onStartOnline={() => setScreen("online-lobby")}
         isMobile={isMobile}
         isTablet={isTablet}
         isDesktop={isDesktop}
@@ -849,9 +936,9 @@ export default function App() {
     );
   }
 
-  if (screen === "lobby") {
+  if (screen === "online-lobby") {
     return (
-      <Lobby
+      <OnlineLobbyScreen
         playerName={playerName}
         roomCodeInput={roomCodeInput}
         setRoomCodeInput={setRoomCodeInput}
@@ -866,17 +953,37 @@ export default function App() {
     );
   }
 
+  if (screen === "local-game") {
+    return (
+      <UltimateBoard
+        title="GAM Games - Lokal 1v1"
+        roomCode=""
+        mySymbol={null}
+        gameState={localGame}
+        onBack={() => setScreen("home")}
+        onMove={handleLocalMove}
+        onReset={resetLocalGame}
+        isMobile={isMobile}
+        isTablet={isTablet}
+        isDesktop={isDesktop}
+        isLocal={true}
+      />
+    );
+  }
+
   return (
-    <Room
+    <UltimateBoard
+      title="GAM Games - Online 1v1"
       roomCode={roomCode}
       mySymbol={mySymbol}
-      room={room}
-      onLeave={leaveRoom}
-      onMove={handleMove}
-      onReset={resetRoom}
+      gameState={room?.state || createUltimateState()}
+      onBack={leaveOnlineRoom}
+      onMove={handleOnlineMove}
+      onReset={resetOnlineRoom}
       isMobile={isMobile}
       isTablet={isTablet}
       isDesktop={isDesktop}
+      isLocal={false}
     />
   );
 }
