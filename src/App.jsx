@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase =
+  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const WIN_LINES = [
   [0, 1, 2],
@@ -13,84 +12,62 @@ const WIN_LINES = [
   [6, 7, 8],
   [0, 3, 6],
   [1, 4, 7],
-  [2, 4, 6],
+  [2, 5, 8],
   [0, 4, 8],
   [2, 4, 6],
 ];
 
-const GAME_CATALOG = [
+const GAMES = [
   {
-    id: "ultimate-ttt",
-    title: "GAM Games",
-    description: "Das aktuelle Hauptspiel mit Online-Räumen.",
-    status: "live",
+    id: "ultimate",
+    title: "Ultimate Tic-Tac-Toe",
+    desc: "Online spielbar mit Raumcode.",
+    live: true,
   },
   {
-    id: "classic-ttt",
+    id: "classic",
     title: "Classic Tic-Tac-Toe",
-    description: "Kleines schnelles 3x3 für später.",
-    status: "coming-soon",
+    desc: "Kommt später.",
+    live: false,
   },
   {
-    id: "connect-four",
+    id: "connect4",
     title: "Connect Four",
-    description: "Vier gewinnt als nächstes Brettspiel.",
-    status: "coming-soon",
-  },
-  {
-    id: "memory-duel",
-    title: "Memory Duel",
-    description: "Kurzes 1v1 Memory für Handy und Browser.",
-    status: "coming-soon",
+    desc: "Kommt später.",
+    live: false,
   },
 ];
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
-
-  useEffect(() => {
-    function onResize() {
-      setIsMobile(window.innerWidth < 900);
-    }
-
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  return isMobile;
-}
-
-function getWinner(cells) {
-  for (const [a, b, c] of WIN_LINES) {
-    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
-  }
-  return null;
-}
-
-function isFull(cells) {
-  return cells.every((cell) => cell !== null);
-}
 
 function createBoards() {
   return Array.from({ length: 9 }, () => Array(9).fill(null));
 }
 
-function createGameState(hostName = "Host") {
+function createState(host = "Host") {
   return {
     boards: createBoards(),
     currentPlayer: "X",
     nextBoard: null,
     history: [],
-    players: {
-      X: hostName,
-      O: null,
-    },
+    players: { X: host, O: null },
   };
 }
 
-function computeMeta(boards) {
-  const winners = boards.map((board) => getWinner(board));
-  const draws = boards.map((board, i) => !winners[i] && isFull(board));
+function getWinner(cells) {
+  for (const [a, b, c] of WIN_LINES) {
+    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+      return cells[a];
+    }
+  }
+  return null;
+}
+
+function isFull(cells) {
+  return cells.every(Boolean);
+}
+
+function getMeta(boards) {
+  const winners = boards.map(getWinner);
+  const draws = boards.map((b, i) => !winners[i] && isFull(b));
   const bigWinner = getWinner(winners);
   const bigDraw = !bigWinner && winners.every((w, i) => w || draws[i]);
   return { winners, draws, bigWinner, bigDraw };
@@ -103,47 +80,56 @@ function getActiveBoards(boards, nextBoard, meta) {
   return boards.map((_, i) => i).filter((i) => !meta.winners[i] && !meta.draws[i]);
 }
 
-function randomRoomCode() {
+function randomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function Shell({ children }) {
-  return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "linear-gradient(180deg, #0b1120 0%, #111827 55%, #0f172a 100%)",
-        color: "white",
-        fontFamily: "Arial, sans-serif",
-        padding: "max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))",
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ width: "100%", margin: "0 auto" }}>{children}</div>
-    </div>
-  );
+function pageStyle() {
+  return {
+    minHeight: "100vh",
+    background: "linear-gradient(180deg, #0f172a, #111827)",
+    color: "white",
+    fontFamily: "Arial, sans-serif",
+    padding: "16px",
+    boxSizing: "border-box",
+  };
 }
 
-function SectionCard({ children, style }) {
-  return (
-    <div
-      style={{
-        background: "rgba(15, 23, 42, 0.92)",
-        border: "1px solid rgba(148, 163, 184, 0.15)",
-        borderRadius: "20px",
-        padding: "clamp(14px, 2vw, 20px)",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-        width: "100%",
-        boxSizing: "border-box",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
+function cardStyle() {
+  return {
+    background: "#0f172a",
+    border: "1px solid #334155",
+    borderRadius: "18px",
+    padding: "18px",
+    boxSizing: "border-box",
+  };
 }
 
-function Cell({ value, onClick, disabled }) {
+function buttonStyle(bg = "#38bdf8", color = "#07111f") {
+  return {
+    padding: "12px 16px",
+    borderRadius: "12px",
+    border: "none",
+    background: bg,
+    color,
+    fontWeight: "bold",
+    cursor: "pointer",
+  };
+}
+
+function inputStyle() {
+  return {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #334155",
+    background: "#020617",
+    color: "white",
+    boxSizing: "border-box",
+  };
+}
+
+function Cell({ value, disabled, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -151,13 +137,13 @@ function Cell({ value, onClick, disabled }) {
       style={{
         width: "100%",
         aspectRatio: "1 / 1",
-        fontSize: "clamp(18px, 3.2vw, 22px)",
-        fontWeight: "bold",
         border: "1px solid #475569",
+        borderRadius: "8px",
         background: disabled ? "#1e293b" : "#334155",
         color: "white",
+        fontSize: "clamp(18px, 2vw, 24px)",
+        fontWeight: "bold",
         cursor: disabled ? "not-allowed" : "pointer",
-        borderRadius: "10px",
       }}
     >
       {value}
@@ -165,15 +151,15 @@ function Cell({ value, onClick, disabled }) {
   );
 }
 
-function SmallBoard({ board, boardIndex, boardWinner, boardDraw, isActive, onMove, gameOver }) {
+function SmallBoard({ board, boardIndex, boardWinner, boardDraw, isActive, gameOver, onMove }) {
   return (
     <div
       style={{
         position: "relative",
         padding: "6px",
+        borderRadius: "12px",
         background: isActive ? "#1d4ed8" : "#0f172a",
         border: isActive ? "2px solid #7dd3fc" : "2px solid #334155",
-        borderRadius: "12px",
       }}
     >
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4px" }}>
@@ -192,94 +178,52 @@ function SmallBoard({ board, boardIndex, boardWinner, boardDraw, isActive, onMov
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(0,0,0,0.65)",
+            borderRadius: "12px",
+            background: "rgba(0,0,0,0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: "12px",
-            fontSize: "clamp(28px, 6vw, 42px)",
+            fontSize: "40px",
             fontWeight: "bold",
-            color: "white",
           }}
         >
-          {boardWinner ? boardWinner : "—"}
+          {boardWinner || "—"}
         </div>
       )}
     </div>
   );
 }
 
-function GameCard({ game, onOpen, active }) {
-  const statusText = game.status === "live" ? "Live" : "Bald";
-  const statusColor = game.status === "live" ? "#22c55e" : "#f59e0b";
-
-  return (
-    <button
-      onClick={() => onOpen(game.id)}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        background: active ? "#1e3a8a" : "#0f172a",
-        border: active ? "1px solid #7dd3fc" : "1px solid rgba(148,163,184,0.2)",
-        borderRadius: "16px",
-        padding: "18px",
-        color: "white",
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" }}>
-        <strong style={{ fontSize: "20px" }}>{game.title}</strong>
-        <span
-          style={{
-            background: statusColor,
-            color: "#07111f",
-            fontWeight: "bold",
-            borderRadius: "999px",
-            padding: "4px 10px",
-            fontSize: "12px",
-          }}
-        >
-          {statusText}
-        </span>
-      </div>
-      <p style={{ color: "#cbd5e1", lineHeight: 1.5, marginBottom: 0 }}>{game.description}</p>
-    </button>
-  );
-}
-
-function SuggestionPanel({ playerName }) {
+function Suggestions({ playerName }) {
   const [gameName, setGameName] = useState("");
   const [details, setDetails] = useState("");
-  const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
-    async function loadSuggestions() {
+    async function load() {
       if (!supabase) return;
       const { data } = await supabase
         .from("game_suggestions")
-        .select("id, player_name, game_name, details, created_at")
+        .select("*")
         .order("created_at", { ascending: false })
-        .limit(8);
-      if (data) setSuggestions(data);
+        .limit(6);
+      if (data) setItems(data);
     }
-    loadSuggestions();
+    load();
   }, []);
 
-  async function submitSuggestion(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!supabase) {
-      setMessage("Supabase fehlt noch.");
+      setMessage("Supabase fehlt.");
       return;
     }
     if (!gameName.trim()) {
-      setMessage("Bitte mindestens einen Spielnamen eingeben.");
+      setMessage("Bitte Spielnamen eingeben.");
       return;
     }
 
-    setSending(true);
-    setMessage("");
     const { data, error } = await supabase
       .from("game_suggestions")
       .insert({
@@ -290,343 +234,309 @@ function SuggestionPanel({ playerName }) {
       .select()
       .single();
 
-    setSending(false);
-
     if (error) {
       setMessage(error.message);
       return;
     }
 
-    setSuggestions((prev) => [data, ...prev].slice(0, 8));
+    setItems((prev) => [data, ...prev].slice(0, 6));
     setGameName("");
     setDetails("");
     setMessage("Vorschlag gespeichert.");
   }
 
   return (
-    <SectionCard>
-      <h2 style={{ marginTop: 0, marginBottom: "10px" }}>Spiel vorschlagen</h2>
-      <p style={{ color: "#cbd5e1", lineHeight: 1.5 }}>
-        Andere Spieler können hier neue Spiele vorschlagen. Diese Vorschläge werden online gespeichert.
-      </p>
-
-      <form onSubmit={submitSuggestion}>
+    <div style={cardStyle()}>
+      <h2 style={{ marginTop: 0 }}>Spiel vorschlagen</h2>
+      <form onSubmit={submit}>
         <input
           value={gameName}
           onChange={(e) => setGameName(e.target.value)}
-          placeholder="Zum Beispiel: Schach, Uno, 2048 Duel"
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            borderRadius: "10px",
-            border: "1px solid #334155",
-            background: "#020617",
-            color: "white",
-            boxSizing: "border-box",
-            marginBottom: "10px",
-          }}
+          placeholder="Spielname"
+          style={{ ...inputStyle(), marginBottom: "10px" }}
         />
         <textarea
           value={details}
           onChange={(e) => setDetails(e.target.value)}
-          placeholder="Was soll das Spiel können? Online, Bot, Ranking, Handy, etc."
+          placeholder="Beschreibung"
           rows={4}
-          style={{
-            width: "100%",
-            padding: "12px 14px",
-            borderRadius: "10px",
-            border: "1px solid #334155",
-            background: "#020617",
-            color: "white",
-            boxSizing: "border-box",
-            resize: "vertical",
-          }}
+          style={{ ...inputStyle(), resize: "vertical" }}
         />
-        <button
-          type="submit"
-          disabled={sending}
-          style={{
-            marginTop: "12px",
-            padding: "12px 18px",
-            borderRadius: "10px",
-            border: "none",
-            background: "#22c55e",
-            color: "#07111f",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-        >
-          {sending ? "Speichere..." : "Vorschlag absenden"}
+        <button type="submit" style={{ ...buttonStyle("#22c55e"), marginTop: "12px" }}>
+          Vorschlag absenden
         </button>
       </form>
 
-      {message ? <div style={{ marginTop: "12px", color: "#93c5fd" }}>{message}</div> : null}
+      {message ? <div style={{ marginTop: "10px", color: "#93c5fd" }}>{message}</div> : null}
 
-      <div style={{ marginTop: "18px" }}>
-        <h3 style={{ marginTop: 0 }}>Neueste Vorschläge</h3>
-        <div style={{ display: "grid", gap: "10px" }}>
-          {suggestions.length === 0 ? (
-            <div style={{ color: "#94a3b8" }}>Noch keine Vorschläge.</div>
-          ) : (
-            suggestions.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  background: "#020617",
-                  border: "1px solid rgba(148,163,184,0.15)",
-                  borderRadius: "12px",
-                  padding: "12px",
-                }}
-              >
-                <div style={{ fontWeight: "bold" }}>{item.game_name}</div>
-                <div style={{ color: "#93c5fd", fontSize: "13px", marginTop: "4px" }}>
-                  von {item.player_name || "Anonym"}
-                </div>
-                {item.details ? <div style={{ color: "#cbd5e1", marginTop: "6px" }}>{item.details}</div> : null}
-              </div>
-            ))
-          )}
-        </div>
+      <div style={{ marginTop: "18px", display: "grid", gap: "10px" }}>
+        {items.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              background: "#020617",
+              border: "1px solid #1e293b",
+              borderRadius: "12px",
+              padding: "12px",
+            }}
+          >
+            <strong>{item.game_name}</strong>
+            <div style={{ color: "#93c5fd", fontSize: "13px", marginTop: "4px" }}>
+              von {item.player_name || "Anonym"}
+            </div>
+            {item.details ? (
+              <div style={{ color: "#cbd5e1", marginTop: "6px" }}>{item.details}</div>
+            ) : null}
+          </div>
+        ))}
       </div>
-    </SectionCard>
+    </div>
   );
 }
 
-function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, onStartOnline, isMobile }) {
+function Home({ playerName, setPlayerName, selectedGame, setSelectedGame, onOpenGame }) {
   return (
-    <Shell>
-      <div style={{ display: "grid", gap: "18px" }}>
-        <SectionCard>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "18px", flexWrap: "wrap", alignItems: "center" }}>
+    <div style={pageStyle()}>
+      <div style={{ width: "100%", maxWidth: "1500px", margin: "0 auto", display: "grid", gap: "18px" }}>
+        <div style={cardStyle()}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <h1 style={{ margin: 0, fontSize: "42px" }}>GAM Games</h1>
+              <h1 style={{ margin: 0, fontSize: "clamp(30px, 5vw, 46px)" }}>GAM Games</h1>
               <p style={{ color: "#cbd5e1", marginBottom: 0 }}>
-                Ein Menü mit mehreren Spielen. Ultimate Tic-Tac-Toe ist nur das erste Live-Spiel.
+                Mehrere Spiele auf einer Plattform.
               </p>
             </div>
-            <div style={{ minWidth: "260px", flex: 1, maxWidth: "360px" }}>
-              <div style={{ color: "#94a3b8", marginBottom: "8px" }}>Dein Name</div>
+
+            <div style={{ width: "100%", maxWidth: "320px" }}>
+              <div style={{ marginBottom: "8px", color: "#94a3b8" }}>Dein Name</div>
               <input
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: "10px",
-                  border: "1px solid #334155",
-                  background: "#020617",
-                  color: "white",
-                  boxSizing: "border-box",
-                }}
+                style={inputStyle()}
               />
             </div>
           </div>
-        </SectionCard>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: "18px", alignItems: "start" }}>
-          <SectionCard>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "18px",
+            alignItems: "start",
+          }}
+        >
+          <div style={cardStyle()}>
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
             <div style={{ display: "grid", gap: "12px" }}>
-              {GAME_CATALOG.map((game) => (
-                <GameCard
+              {GAMES.map((game) => (
+                <button
                   key={game.id}
-                  game={game}
-                  active={selectedGame === game.id}
-                  onOpen={setSelectedGame}
-                />
+                  onClick={() => setSelectedGame(game.id)}
+                  style={{
+                    ...cardStyle(),
+                    padding: "16px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    background: selectedGame === game.id ? "#1e3a8a" : "#0f172a",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <strong style={{ fontSize: "20px" }}>{game.title}</strong>
+                    <span
+                      style={{
+                        background: game.live ? "#22c55e" : "#f59e0b",
+                        color: "#07111f",
+                        borderRadius: "999px",
+                        padding: "4px 10px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {game.live ? "Live" : "Bald"}
+                    </span>
+                  </div>
+                  <p style={{ marginBottom: 0, color: "#cbd5e1" }}>{game.desc}</p>
+                </button>
               ))}
             </div>
-            <div style={{ marginTop: "16px" }}>
-              <button
-                onClick={onStartOnline}
-                disabled={selectedGame !== "ultimate-ttt"}
-                style={{
-                  padding: "14px 20px",
-                  borderRadius: "12px",
-                  border: "none",
-                  background: selectedGame === "ultimate-ttt" ? "#38bdf8" : "#475569",
-                  color: "#07111f",
-                  fontWeight: "bold",
-                  cursor: selectedGame === "ultimate-ttt" ? "pointer" : "not-allowed",
-                }}
-              >
-                {selectedGame === "ultimate-ttt" ? "Ultimate Tic-Tac-Toe öffnen" : "Dieses Spiel kommt später"}
-              </button>
-            </div>
-          </SectionCard>
 
-          <SuggestionPanel playerName={playerName} />
+            <button
+              onClick={onOpenGame}
+              disabled={selectedGame !== "ultimate"}
+              style={{
+                ...buttonStyle(),
+                marginTop: "16px",
+                background: selectedGame === "ultimate" ? "#38bdf8" : "#475569",
+              }}
+            >
+              {selectedGame === "ultimate"
+                ? "Ultimate Tic-Tac-Toe öffnen"
+                : "Dieses Spiel kommt später"}
+            </button>
+          </div>
+
+          <Suggestions playerName={playerName} />
         </div>
       </div>
-    </Shell>
+    </div>
   );
 }
 
-function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInput, setRoomCodeInput, loading, error, isMobile }) {
+function Lobby({ playerName, roomCodeInput, setRoomCodeInput, onBack, onCreate, onJoin, error }) {
   return (
-    <Shell>
-      <div style={{ display: "grid", gap: "18px" }}>
-        <SectionCard>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+    <div style={pageStyle()}>
+      <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", display: "grid", gap: "18px" }}>
+        <div style={cardStyle()}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <h1 style={{ margin: 0, fontSize: "clamp(28px, 5vw, 36px)" }}>GAM Games</h1>
-              <p style={{ color: "#cbd5e1", marginBottom: 0 }}>Raum erstellen oder mit Code beitreten.</p>
+              <h1 style={{ margin: 0 }}>GAM Games</h1>
+              <p style={{ color: "#cbd5e1", marginBottom: 0 }}>
+                Ultimate Tic-Tac-Toe Online
+              </p>
             </div>
-            <button
-              onClick={onBack}
-              style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#334155",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Zurück zum Hub
+            <button onClick={onBack} style={buttonStyle("#334155", "white")}>
+              ← Zurück
             </button>
           </div>
-        </SectionCard>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "18px" }}>
-          <SectionCard>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "18px",
+          }}
+        >
+          <div style={cardStyle()}>
             <h2 style={{ marginTop: 0 }}>Raum erstellen</h2>
-            <p style={{ color: "#cbd5e1" }}>Du bist Spieler X. Name: {playerName || "Spieler"}</p>
-            <button
-              onClick={onCreateRoom}
-              disabled={loading}
-              style={{
-                padding: "12px 18px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#22c55e",
-                color: "#07111f",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
+            <p style={{ color: "#cbd5e1" }}>Du bist Spieler X. Name: {playerName}</p>
+            <button onClick={onCreate} style={buttonStyle("#22c55e")}>
               Raum erstellen
             </button>
-          </SectionCard>
+          </div>
 
-          <SectionCard>
+          <div style={cardStyle()}>
             <h2 style={{ marginTop: 0 }}>Raum beitreten</h2>
             <input
               value={roomCodeInput}
               onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
               placeholder="Raumcode"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: "10px",
-                border: "1px solid #334155",
-                background: "#020617",
-                color: "white",
-                boxSizing: "border-box",
-                marginBottom: "12px",
-              }}
+              style={{ ...inputStyle(), marginBottom: "12px" }}
             />
-            <button
-              onClick={onJoinRoom}
-              disabled={loading}
-              style={{
-                padding: "12px 18px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#38bdf8",
-                color: "#07111f",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
+            <button onClick={onJoin} style={buttonStyle()}>
               Beitreten
             </button>
-          </SectionCard>
+          </div>
         </div>
 
         {error ? <div style={{ color: "#fca5a5" }}>{error}</div> : null}
       </div>
-    </Shell>
+    </div>
   );
 }
 
-function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset, isMobile }) {
-  const gameState = room?.state || createGameState();
-  const meta = computeMeta(gameState.boards);
-  const activeBoards = getActiveBoards(gameState.boards, gameState.nextBoard, meta);
+function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
+  const gameState = room?.state || createState();
+  const meta = useMemo(() => getMeta(gameState.boards), [gameState.boards]);
+  const activeBoards = useMemo(
+    () => getActiveBoards(gameState.boards, gameState.nextBoard, meta),
+    [gameState.boards, gameState.nextBoard, meta]
+  );
 
   let status = "";
-  if (meta.bigWinner) {
-    status = `Spieler ${meta.bigWinner} gewinnt das Spiel`;
-  } else if (meta.bigDraw) {
-    status = "Unentschieden";
-  } else if (gameState.currentPlayer === mySymbol) {
-    status = `Du bist dran (${mySymbol})`;
-  } else {
-    status = `Warte auf ${gameState.currentPlayer}`;
-  }
+  if (meta.bigWinner) status = `Spieler ${meta.bigWinner} gewinnt das Spiel`;
+  else if (meta.bigDraw) status = "Unentschieden";
+  else if (gameState.currentPlayer === mySymbol) status = `Du bist dran (${mySymbol})`;
+  else status = `Warte auf ${gameState.currentPlayer}`;
 
   return (
-    <Shell>
-      <div style={{ display: "grid", gap: "18px" }}>
-        <SectionCard>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-            <button
-              onClick={onLeave}
-              style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#334155",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
+    <div style={pageStyle()}>
+      <div style={{ width: "100%", maxWidth: "1500px", margin: "0 auto", display: "grid", gap: "18px" }}>
+        <div style={cardStyle()}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <button onClick={onLeave} style={buttonStyle("#334155", "white")}>
               ← Lobby
             </button>
             <div style={{ color: "#cbd5e1" }}>
-              Raumcode: <strong style={{ color: "white", letterSpacing: "1px" }}>{roomCode}</strong>
+              Raumcode: <strong style={{ color: "white" }}>{roomCode}</strong>
             </div>
           </div>
-        </SectionCard>
-
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(220px, 1fr))", gap: "12px" }}>
-          <SectionCard>
-            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Du spielst als</div>
-            <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px" }}>{mySymbol}</div>
-          </SectionCard>
-          <SectionCard>
-            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler X</div>
-            <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>{gameState.players?.X || "Wartet..."}</div>
-          </SectionCard>
-          <SectionCard>
-            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler O</div>
-            <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>{gameState.players?.O || "Wartet..."}</div>
-          </SectionCard>
         </div>
 
-        <SectionCard>
-          <h1 style={{ textAlign: "center", marginTop: 0, marginBottom: "10px", fontSize: "clamp(26px, 5vw, 34px)" }}>Ultimate Tic-Tac-Toe</h1>
-          <p style={{ textAlign: "center", marginBottom: "20px", color: "#7dd3fc", fontSize: "18px" }}>{status}</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "12px",
+          }}
+        >
+          <div style={cardStyle()}>
+            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Du spielst als</div>
+            <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px" }}>{mySymbol}</div>
+          </div>
+          <div style={cardStyle()}>
+            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler X</div>
+            <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>
+              {gameState.players?.X || "Wartet..."}
+            </div>
+          </div>
+          <div style={cardStyle()}>
+            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler O</div>
+            <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>
+              {gameState.players?.O || "Wartet..."}
+            </div>
+          </div>
+        </div>
 
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-            <button
-              onClick={onReset}
-              style={{
-                padding: "10px 18px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#38bdf8",
-                color: "#07111f",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
+        <div style={cardStyle()}>
+          <h1 style={{ textAlign: "center", marginTop: 0 }}>GAM Games</h1>
+          <p style={{ textAlign: "center", color: "#7dd3fc", fontSize: "18px" }}>{status}</p>
+
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "18px" }}>
+            <button onClick={onReset} style={buttonStyle()}>
               Neue Runde
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, minmax(92px, 1fr))" : "repeat(3, minmax(180px, 1fr))", gap: isMobile ? "8px" : "12px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(110px, 1fr))",
+              gap: "12px",
+            }}
+          >
             {gameState.boards.map((board, boardIndex) => (
               <SmallBoard
                 key={boardIndex}
@@ -635,27 +545,25 @@ function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset, isMobi
                 boardWinner={meta.winners[boardIndex]}
                 boardDraw={meta.draws[boardIndex]}
                 isActive={activeBoards.includes(boardIndex)}
-                onMove={onMove}
                 gameOver={!!meta.bigWinner || !!meta.bigDraw}
+                onMove={onMove}
               />
             ))}
           </div>
-        </SectionCard>
+        </div>
       </div>
-    </Shell>
+    </div>
   );
 }
 
 export default function App() {
-  const isMobile = useIsMobile();
   const [screen, setScreen] = useState("home");
   const [playerName, setPlayerName] = useState("Isa");
-  const [selectedGame, setSelectedGame] = useState("ultimate-ttt");
+  const [selectedGame, setSelectedGame] = useState("ultimate");
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [mySymbol, setMySymbol] = useState(null);
   const [room, setRoom] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -683,15 +591,11 @@ export default function App() {
   }, [roomCode, screen]);
 
   async function createRoom() {
-    if (!supabase) {
-      setError("Supabase ist noch nicht eingerichtet.");
-      return;
-    }
-
-    setLoading(true);
+    if (!supabase) return setError("Supabase ist nicht eingerichtet.");
     setError("");
-    const code = randomRoomCode();
-    const state = createGameState(playerName || "Host");
+
+    const code = randomCode();
+    const state = createState(playerName || "Host");
 
     const { data, error } = await supabase
       .from("utt_rooms")
@@ -699,12 +603,7 @@ export default function App() {
       .select()
       .single();
 
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
+    if (error) return setError(error.message);
 
     setRoom(data);
     setRoomCode(code);
@@ -713,16 +612,11 @@ export default function App() {
   }
 
   async function joinRoom() {
-    if (!supabase) {
-      setError("Supabase ist noch nicht eingerichtet.");
-      return;
-    }
+    if (!supabase) return setError("Supabase ist nicht eingerichtet.");
+    setError("");
 
     const code = roomCodeInput.trim().toUpperCase();
     if (!code) return;
-
-    setLoading(true);
-    setError("");
 
     const { data, error } = await supabase
       .from("utt_rooms")
@@ -730,11 +624,7 @@ export default function App() {
       .eq("room_code", code)
       .single();
 
-    if (error || !data) {
-      setLoading(false);
-      setError("Raum nicht gefunden.");
-      return;
-    }
+    if (error || !data) return setError("Raum nicht gefunden.");
 
     const nextState = {
       ...data.state,
@@ -751,12 +641,7 @@ export default function App() {
       .select()
       .single();
 
-    setLoading(false);
-
-    if (updateError) {
-      setError(updateError.message);
-      return;
-    }
+    if (updateError) return setError(updateError.message);
 
     setRoom(updated);
     setRoomCode(code);
@@ -765,24 +650,23 @@ export default function App() {
   }
 
   async function saveState(nextState) {
-    if (!supabase || !roomCode) return;
-
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("utt_rooms")
       .update({ state: nextState })
       .eq("room_code", roomCode)
       .select()
       .single();
 
-    if (!error && data) setRoom(data);
+    if (data) setRoom(data);
   }
 
   async function handleMove(boardIndex, cellIndex) {
-    const gameState = room?.state || createGameState();
-    const meta = computeMeta(gameState.boards);
+    if (!room || !mySymbol) return;
+
+    const gameState = room.state;
+    const meta = getMeta(gameState.boards);
     const activeBoards = getActiveBoards(gameState.boards, gameState.nextBoard, meta);
 
-    if (!room || !mySymbol) return;
     if (gameState.currentPlayer !== mySymbol) return;
     if (!activeBoards.includes(boardIndex)) return;
     if (gameState.boards[boardIndex][cellIndex]) return;
@@ -811,13 +695,13 @@ export default function App() {
 
   async function resetRoom() {
     if (!room) return;
-    const nextState = createGameState(room.state.players?.X || "Host");
+    const nextState = createState(room.state.players?.X || "Host");
     nextState.players.O = room.state.players?.O || null;
     await saveState(nextState);
   }
 
   function leaveRoom() {
-    setScreen("online-lobby");
+    setScreen("lobby");
     setRoomCode("");
     setRoom(null);
     setMySymbol(null);
@@ -826,45 +710,38 @@ export default function App() {
 
   if (screen === "home") {
     return (
-      <HomeScreen
+      <Home
         playerName={playerName}
         setPlayerName={setPlayerName}
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
-        isMobile={isMobile}
-        onStartOnline={() => {
-          setError("");
-          setScreen("online-lobby");
-        }}
+        onOpenGame={() => setScreen("lobby")}
       />
     );
   }
 
-  if (screen === "online-lobby") {
+  if (screen === "lobby") {
     return (
-      <OnlineLobby
+      <Lobby
         playerName={playerName}
         roomCodeInput={roomCodeInput}
         setRoomCodeInput={setRoomCodeInput}
-        loading={loading}
-        error={error}
-        isMobile={isMobile}
         onBack={() => setScreen("home")}
-        onCreateRoom={createRoom}
-        onJoinRoom={joinRoom}
+        onCreate={createRoom}
+        onJoin={joinRoom}
+        error={error}
       />
     );
   }
 
   return (
-    <OnlineRoom
+    <Room
       roomCode={roomCode}
       mySymbol={mySymbol}
       room={room}
       onLeave={leaveRoom}
       onMove={handleMove}
       onReset={resetRoom}
-      isMobile={isMobile}
     />
   );
 }
