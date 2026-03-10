@@ -36,7 +36,33 @@ const GAMES = [
     desc: "Kommt später.",
     live: false,
   },
+  {
+    id: "memory",
+    title: "Memory Duel",
+    desc: "Kommt später.",
+    live: false,
+  },
 ];
+
+function useViewport() {
+  const [width, setWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    function onResize() {
+      setWidth(window.innerWidth);
+    }
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return {
+    width,
+    isMobile: width < 900,
+    isTablet: width >= 900 && width < 1280,
+    isDesktop: width >= 1280,
+  };
+}
 
 function createBoards() {
   return Array.from({ length: 9 }, () => Array(9).fill(null));
@@ -62,14 +88,15 @@ function getWinner(cells) {
 }
 
 function isFull(cells) {
-  return cells.every(Boolean);
+  return cells.every((cell) => cell !== null);
 }
 
 function getMeta(boards) {
   const winners = boards.map(getWinner);
-  const draws = boards.map((b, i) => !winners[i] && isFull(b));
+  const draws = boards.map((board, i) => !winners[i] && isFull(board));
   const bigWinner = getWinner(winners);
   const bigDraw = !bigWinner && winners.every((w, i) => w || draws[i]);
+
   return { winners, draws, bigWinner, bigDraw };
 }
 
@@ -77,6 +104,7 @@ function getActiveBoards(boards, nextBoard, meta) {
   if (nextBoard !== null && !meta.winners[nextBoard] && !meta.draws[nextBoard]) {
     return [nextBoard];
   }
+
   return boards.map((_, i) => i).filter((i) => !meta.winners[i] && !meta.draws[i]);
 }
 
@@ -84,24 +112,35 @@ function randomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function pageStyle() {
+function shellStyle(isMobile) {
   return {
-    minHeight: "100vh",
-    background: "linear-gradient(180deg, #0f172a, #111827)",
+    minHeight: "100dvh",
+    background: "linear-gradient(180deg, #0b1120 0%, #111827 55%, #0f172a 100%)",
     color: "white",
     fontFamily: "Arial, sans-serif",
-    padding: "16px",
+    padding: isMobile ? "12px" : "20px",
     boxSizing: "border-box",
+  };
+}
+
+function containerStyle(isDesktop) {
+  return {
+    width: "100%",
+    maxWidth: isDesktop ? "1600px" : "1400px",
+    margin: "0 auto",
+    display: "grid",
+    gap: "18px",
   };
 }
 
 function cardStyle() {
   return {
-    background: "#0f172a",
-    border: "1px solid #334155",
-    borderRadius: "18px",
+    background: "rgba(15, 23, 42, 0.92)",
+    border: "1px solid rgba(148, 163, 184, 0.18)",
+    borderRadius: "20px",
     padding: "18px",
     boxSizing: "border-box",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
   };
 }
 
@@ -138,7 +177,7 @@ function Cell({ value, disabled, onClick }) {
         width: "100%",
         aspectRatio: "1 / 1",
         border: "1px solid #475569",
-        borderRadius: "8px",
+        borderRadius: "10px",
         background: disabled ? "#1e293b" : "#334155",
         color: "white",
         fontSize: "clamp(18px, 2vw, 24px)",
@@ -151,13 +190,21 @@ function Cell({ value, disabled, onClick }) {
   );
 }
 
-function SmallBoard({ board, boardIndex, boardWinner, boardDraw, isActive, gameOver, onMove }) {
+function SmallBoard({
+  board,
+  boardIndex,
+  boardWinner,
+  boardDraw,
+  isActive,
+  gameOver,
+  onMove,
+}) {
   return (
     <div
       style={{
         position: "relative",
         padding: "6px",
-        borderRadius: "12px",
+        borderRadius: "14px",
         background: isActive ? "#1d4ed8" : "#0f172a",
         border: isActive ? "2px solid #7dd3fc" : "2px solid #334155",
       }}
@@ -178,12 +225,12 @@ function SmallBoard({ board, boardIndex, boardWinner, boardDraw, isActive, gameO
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: "12px",
+            borderRadius: "14px",
             background: "rgba(0,0,0,0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "40px",
+            fontSize: "clamp(28px, 4vw, 42px)",
             fontWeight: "bold",
           }}
         >
@@ -207,18 +254,22 @@ function Suggestions({ playerName }) {
         .from("game_suggestions")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(6);
+        .limit(8);
+
       if (data) setItems(data);
     }
+
     load();
   }, []);
 
   async function submit(e) {
     e.preventDefault();
+
     if (!supabase) {
       setMessage("Supabase fehlt.");
       return;
     }
+
     if (!gameName.trim()) {
       setMessage("Bitte Spielnamen eingeben.");
       return;
@@ -239,7 +290,7 @@ function Suggestions({ playerName }) {
       return;
     }
 
-    setItems((prev) => [data, ...prev].slice(0, 6));
+    setItems((prev) => [data, ...prev].slice(0, 8));
     setGameName("");
     setDetails("");
     setMessage("Vorschlag gespeichert.");
@@ -248,6 +299,7 @@ function Suggestions({ playerName }) {
   return (
     <div style={cardStyle()}>
       <h2 style={{ marginTop: 0 }}>Spiel vorschlagen</h2>
+
       <form onSubmit={submit}>
         <input
           value={gameName}
@@ -255,6 +307,7 @@ function Suggestions({ playerName }) {
           placeholder="Spielname"
           style={{ ...inputStyle(), marginBottom: "10px" }}
         />
+
         <textarea
           value={details}
           onChange={(e) => setDetails(e.target.value)}
@@ -262,6 +315,7 @@ function Suggestions({ playerName }) {
           rows={4}
           style={{ ...inputStyle(), resize: "vertical" }}
         />
+
         <button type="submit" style={{ ...buttonStyle("#22c55e"), marginTop: "12px" }}>
           Vorschlag absenden
         </button>
@@ -270,34 +324,47 @@ function Suggestions({ playerName }) {
       {message ? <div style={{ marginTop: "10px", color: "#93c5fd" }}>{message}</div> : null}
 
       <div style={{ marginTop: "18px", display: "grid", gap: "10px" }}>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              background: "#020617",
-              border: "1px solid #1e293b",
-              borderRadius: "12px",
-              padding: "12px",
-            }}
-          >
-            <strong>{item.game_name}</strong>
-            <div style={{ color: "#93c5fd", fontSize: "13px", marginTop: "4px" }}>
-              von {item.player_name || "Anonym"}
+        {items.length === 0 ? (
+          <div style={{ color: "#94a3b8" }}>Noch keine Vorschläge.</div>
+        ) : (
+          items.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                background: "#020617",
+                border: "1px solid #1e293b",
+                borderRadius: "12px",
+                padding: "12px",
+              }}
+            >
+              <strong>{item.game_name}</strong>
+              <div style={{ color: "#93c5fd", fontSize: "13px", marginTop: "4px" }}>
+                von {item.player_name || "Anonym"}
+              </div>
+              {item.details ? (
+                <div style={{ color: "#cbd5e1", marginTop: "6px" }}>{item.details}</div>
+              ) : null}
             </div>
-            {item.details ? (
-              <div style={{ color: "#cbd5e1", marginTop: "6px" }}>{item.details}</div>
-            ) : null}
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function Home({ playerName, setPlayerName, selectedGame, setSelectedGame, onOpenGame }) {
+function Home({
+  playerName,
+  setPlayerName,
+  selectedGame,
+  setSelectedGame,
+  onOpenGame,
+  isMobile,
+  isTablet,
+  isDesktop,
+}) {
   return (
-    <div style={pageStyle()}>
-      <div style={{ width: "100%", maxWidth: "1500px", margin: "0 auto", display: "grid", gap: "18px" }}>
+    <div style={shellStyle(isMobile)}>
+      <div style={containerStyle(isDesktop)}>
         <div style={cardStyle()}>
           <div
             style={{
@@ -315,7 +382,7 @@ function Home({ playerName, setPlayerName, selectedGame, setSelectedGame, onOpen
               </p>
             </div>
 
-            <div style={{ width: "100%", maxWidth: "320px" }}>
+            <div style={{ width: "100%", maxWidth: "340px" }}>
               <div style={{ marginBottom: "8px", color: "#94a3b8" }}>Dein Name</div>
               <input
                 value={playerName}
@@ -329,24 +396,31 @@ function Home({ playerName, setPlayerName, selectedGame, setSelectedGame, onOpen
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : isTablet
+              ? "1.25fr 0.95fr"
+              : "1.7fr 1fr",
             gap: "18px",
             alignItems: "start",
           }}
         >
           <div style={cardStyle()}>
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
+
             <div style={{ display: "grid", gap: "12px" }}>
               {GAMES.map((game) => (
                 <button
                   key={game.id}
                   onClick={() => setSelectedGame(game.id)}
                   style={{
-                    ...cardStyle(),
-                    padding: "16px",
                     textAlign: "left",
                     cursor: "pointer",
                     background: selectedGame === game.id ? "#1e3a8a" : "#0f172a",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    borderRadius: "16px",
+                    padding: "16px",
+                    color: "white",
                   }}
                 >
                   <div
@@ -398,10 +472,21 @@ function Home({ playerName, setPlayerName, selectedGame, setSelectedGame, onOpen
   );
 }
 
-function Lobby({ playerName, roomCodeInput, setRoomCodeInput, onBack, onCreate, onJoin, error }) {
+function Lobby({
+  playerName,
+  roomCodeInput,
+  setRoomCodeInput,
+  onBack,
+  onCreate,
+  onJoin,
+  error,
+  isMobile,
+  isTablet,
+  isDesktop,
+}) {
   return (
-    <div style={pageStyle()}>
-      <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", display: "grid", gap: "18px" }}>
+    <div style={shellStyle(isMobile)}>
+      <div style={containerStyle(isDesktop)}>
         <div style={cardStyle()}>
           <div
             style={{
@@ -413,11 +498,12 @@ function Lobby({ playerName, roomCodeInput, setRoomCodeInput, onBack, onCreate, 
             }}
           >
             <div>
-              <h1 style={{ margin: 0 }}>GAM Games</h1>
+              <h1 style={{ margin: 0, fontSize: "clamp(28px, 4vw, 40px)" }}>GAM Games</h1>
               <p style={{ color: "#cbd5e1", marginBottom: 0 }}>
                 Ultimate Tic-Tac-Toe Online
               </p>
             </div>
+
             <button onClick={onBack} style={buttonStyle("#334155", "white")}>
               ← Zurück
             </button>
@@ -427,7 +513,7 @@ function Lobby({ playerName, roomCodeInput, setRoomCodeInput, onBack, onCreate, 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1.1fr 1fr",
             gap: "18px",
           }}
         >
@@ -459,8 +545,19 @@ function Lobby({ playerName, roomCodeInput, setRoomCodeInput, onBack, onCreate, 
   );
 }
 
-function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
+function Room({
+  roomCode,
+  mySymbol,
+  room,
+  onLeave,
+  onMove,
+  onReset,
+  isMobile,
+  isTablet,
+  isDesktop,
+}) {
   const gameState = room?.state || createState();
+
   const meta = useMemo(() => getMeta(gameState.boards), [gameState.boards]);
   const activeBoards = useMemo(
     () => getActiveBoards(gameState.boards, gameState.nextBoard, meta),
@@ -473,9 +570,15 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
   else if (gameState.currentPlayer === mySymbol) status = `Du bist dran (${mySymbol})`;
   else status = `Warte auf ${gameState.currentPlayer}`;
 
+  const boardGridColumns = isMobile
+    ? "repeat(3, minmax(92px, 1fr))"
+    : isTablet
+    ? "repeat(3, minmax(135px, 1fr))"
+    : "repeat(3, minmax(180px, 1fr))";
+
   return (
-    <div style={pageStyle()}>
-      <div style={{ width: "100%", maxWidth: "1500px", margin: "0 auto", display: "grid", gap: "18px" }}>
+    <div style={shellStyle(isMobile)}>
+      <div style={containerStyle(isDesktop)}>
         <div style={cardStyle()}>
           <div
             style={{
@@ -489,6 +592,7 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
             <button onClick={onLeave} style={buttonStyle("#334155", "white")}>
               ← Lobby
             </button>
+
             <div style={{ color: "#cbd5e1" }}>
               Raumcode: <strong style={{ color: "white" }}>{roomCode}</strong>
             </div>
@@ -498,7 +602,7 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(220px, 1fr))",
             gap: "12px",
           }}
         >
@@ -506,12 +610,14 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
             <div style={{ color: "#94a3b8", fontSize: "13px" }}>Du spielst als</div>
             <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px" }}>{mySymbol}</div>
           </div>
+
           <div style={cardStyle()}>
             <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler X</div>
             <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>
               {gameState.players?.X || "Wartet..."}
             </div>
           </div>
+
           <div style={cardStyle()}>
             <div style={{ color: "#94a3b8", fontSize: "13px" }}>Spieler O</div>
             <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>
@@ -521,7 +627,10 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
         </div>
 
         <div style={cardStyle()}>
-          <h1 style={{ textAlign: "center", marginTop: 0 }}>GAM Games</h1>
+          <h1 style={{ textAlign: "center", marginTop: 0, fontSize: "clamp(28px, 4vw, 40px)" }}>
+            GAM Games
+          </h1>
+
           <p style={{ textAlign: "center", color: "#7dd3fc", fontSize: "18px" }}>{status}</p>
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "18px" }}>
@@ -533,8 +642,8 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(110px, 1fr))",
-              gap: "12px",
+              gridTemplateColumns: boardGridColumns,
+              gap: isMobile ? "8px" : "12px",
             }}
           >
             {gameState.boards.map((board, boardIndex) => (
@@ -557,6 +666,8 @@ function Room({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
 }
 
 export default function App() {
+  const { isMobile, isTablet, isDesktop } = useViewport();
+
   const [screen, setScreen] = useState("home");
   const [playerName, setPlayerName] = useState("Isa");
   const [selectedGame, setSelectedGame] = useState("ultimate");
@@ -591,9 +702,12 @@ export default function App() {
   }, [roomCode, screen]);
 
   async function createRoom() {
-    if (!supabase) return setError("Supabase ist nicht eingerichtet.");
-    setError("");
+    if (!supabase) {
+      setError("Supabase ist nicht eingerichtet.");
+      return;
+    }
 
+    setError("");
     const code = randomCode();
     const state = createState(playerName || "Host");
 
@@ -603,7 +717,10 @@ export default function App() {
       .select()
       .single();
 
-    if (error) return setError(error.message);
+    if (error) {
+      setError(error.message);
+      return;
+    }
 
     setRoom(data);
     setRoomCode(code);
@@ -612,9 +729,12 @@ export default function App() {
   }
 
   async function joinRoom() {
-    if (!supabase) return setError("Supabase ist nicht eingerichtet.");
-    setError("");
+    if (!supabase) {
+      setError("Supabase ist nicht eingerichtet.");
+      return;
+    }
 
+    setError("");
     const code = roomCodeInput.trim().toUpperCase();
     if (!code) return;
 
@@ -624,7 +744,10 @@ export default function App() {
       .eq("room_code", code)
       .single();
 
-    if (error || !data) return setError("Raum nicht gefunden.");
+    if (error || !data) {
+      setError("Raum nicht gefunden.");
+      return;
+    }
 
     const nextState = {
       ...data.state,
@@ -641,7 +764,10 @@ export default function App() {
       .select()
       .single();
 
-    if (updateError) return setError(updateError.message);
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
 
     setRoom(updated);
     setRoomCode(code);
@@ -716,6 +842,9 @@ export default function App() {
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
         onOpenGame={() => setScreen("lobby")}
+        isMobile={isMobile}
+        isTablet={isTablet}
+        isDesktop={isDesktop}
       />
     );
   }
@@ -730,6 +859,9 @@ export default function App() {
         onCreate={createRoom}
         onJoin={joinRoom}
         error={error}
+        isMobile={isMobile}
+        isTablet={isTablet}
+        isDesktop={isDesktop}
       />
     );
   }
@@ -742,6 +874,9 @@ export default function App() {
       onLeave={leaveRoom}
       onMove={handleMove}
       onReset={resetRoom}
+      isMobile={isMobile}
+      isTablet={isTablet}
+      isDesktop={isDesktop}
     />
   );
 }
