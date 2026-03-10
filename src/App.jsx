@@ -96,11 +96,11 @@ function Shell({ children }) {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         background: "linear-gradient(180deg, #0b1120 0%, #111827 55%, #0f172a 100%)",
         color: "white",
         fontFamily: "Arial, sans-serif",
-        padding: "20px",
+        padding: "max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))",
         boxSizing: "border-box",
       }}
     >
@@ -113,11 +113,13 @@ function SectionCard({ children, style }) {
   return (
     <div
       style={{
-        background: "rgba(15, 23, 42, 0.88)",
+        background: "rgba(15, 23, 42, 0.92)",
         border: "1px solid rgba(148, 163, 184, 0.15)",
-        borderRadius: "18px",
-        padding: "18px",
+        borderRadius: "20px",
+        padding: "clamp(14px, 2vw, 20px)",
         boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+        width: "100%",
+        boxSizing: "border-box",
         ...style,
       }}
     >
@@ -134,13 +136,13 @@ function Cell({ value, onClick, disabled }) {
       style={{
         width: "100%",
         aspectRatio: "1 / 1",
-        fontSize: "22px",
+        fontSize: "clamp(18px, 3.2vw, 22px)",
         fontWeight: "bold",
         border: "1px solid #475569",
         background: disabled ? "#1e293b" : "#334155",
         color: "white",
         cursor: disabled ? "not-allowed" : "pointer",
-        borderRadius: "8px",
+        borderRadius: "10px",
       }}
     >
       {value}
@@ -180,7 +182,7 @@ function SmallBoard({ board, boardIndex, boardWinner, boardDraw, isActive, onMov
             alignItems: "center",
             justifyContent: "center",
             borderRadius: "12px",
-            fontSize: "42px",
+            fontSize: "clamp(28px, 6vw, 42px)",
             fontWeight: "bold",
             color: "white",
           }}
@@ -406,7 +408,7 @@ function HomeScreen({ playerName, setPlayerName, selectedGame, setSelectedGame, 
           </div>
         </SectionCard>
 
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "18px" }}>
           <SectionCard>
             <h2 style={{ marginTop: 0 }}>Spiele</h2>
             <div style={{ display: "grid", gap: "12px" }}>
@@ -452,7 +454,7 @@ function OnlineLobby({ playerName, onBack, onCreateRoom, onJoinRoom, roomCodeInp
         <SectionCard>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: "36px" }}>GAM Games</h1>
+              <h1 style={{ margin: 0, fontSize: "clamp(28px, 5vw, 36px)" }}>GAM Games</h1>
               <p style={{ color: "#cbd5e1", marginBottom: 0 }}>Raum erstellen oder mit Code beitreten.</p>
             </div>
             <button
@@ -589,7 +591,7 @@ function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
         </div>
 
         <SectionCard>
-          <h1 style={{ textAlign: "center", marginTop: 0, marginBottom: "10px", fontSize: "34px" }}>Ultimate Tic-Tac-Toe</h1>
+          <h1 style={{ textAlign: "center", marginTop: 0, marginBottom: "10px", fontSize: "clamp(26px, 5vw, 34px)" }}>Ultimate Tic-Tac-Toe</h1>
           <p style={{ textAlign: "center", marginBottom: "20px", color: "#7dd3fc", fontSize: "18px" }}>{status}</p>
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
@@ -609,7 +611,7 @@ function OnlineRoom({ roomCode, mySymbol, room, onLeave, onMove, onReset }) {
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(220px, 1fr))", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(105px, 1fr))", gap: "12px" }}>
             {gameState.boards.map((board, boardIndex) => (
               <SmallBoard
                 key={boardIndex}
