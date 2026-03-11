@@ -3,6 +3,10 @@ export default function OnlineLobby({
   roomCode,
   setRoomCode,
   onBack,
+  onCreateRoom,
+  onJoinRoom,
+  loading,
+  error,
 }) {
   return (
     <div className="page">
@@ -15,30 +19,43 @@ export default function OnlineLobby({
             </button>
           </div>
 
-          <p>
-            Dieser Bereich ist jetzt erstmal nur vorbereitet, damit die Struktur
-            sauber bleibt.
-          </p>
+          <p>Erstelle einen Raum oder tritt mit Code bei.</p>
 
           <div className="info-box">
             <p><strong>Name:</strong> {playerName || "Nicht gesetzt"}</p>
           </div>
+        </div>
 
-          <input
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-            placeholder="Raumcode"
-          />
-
-          <div className="game-actions">
-            <button className="btn blue" disabled>
-              Raum erstellen
-            </button>
-            <button className="btn dark" disabled>
-              Beitreten
+        <div className="online-lobby-grid">
+          <div className="panel">
+            <h2>Raum erstellen</h2>
+            <p>Du wirst Spieler X.</p>
+            <button className="btn blue" onClick={onCreateRoom} disabled={loading}>
+              {loading ? "Lädt..." : "Raum erstellen"}
             </button>
           </div>
+
+          <div className="panel">
+            <h2>Raum beitreten</h2>
+            <input
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+              placeholder="Raumcode"
+            />
+
+            <div className="game-actions" style={{ marginTop: "14px" }}>
+              <button className="btn dark" onClick={onJoinRoom} disabled={loading}>
+                {loading ? "Lädt..." : "Beitreten"}
+              </button>
+            </div>
+          </div>
         </div>
+
+        {error ? (
+          <div className="panel">
+            <p style={{ color: "#f87171", margin: 0 }}>{error}</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
