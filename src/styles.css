@@ -206,9 +206,13 @@ textarea {
 
 .ultimate-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
   width: 100%;
+  max-width: 900px;   /* maximale Größe */
+  margin: 0 auto;     /* zentriert */
+
   min-width: 0;
 }
 
