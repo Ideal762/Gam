@@ -237,20 +237,30 @@ function Suggestions({ playerName }) {
   const [loading, setLoading] = useState(false);
 
   async function loadSuggestions() {
-    if (!supabase) return;
-
-    const { data, error } = await supabase
-      .from("game_suggestions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(8);
-
-    if (error) {
-      setMessage("Fehler beim Laden: " + error.message);
+    if (!supabase) {
+      setMessage("Supabase ist nicht eingerichtet.");
       return;
     }
 
-    setItems(data || []);
+    try {
+      setMessage("");
+
+      const { data, error } = await supabase
+        .from("game_suggestions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      if (error) {
+        setMessage("Fehler beim Laden: " + error.message);
+        return;
+      }
+
+      setItems(data || []);
+    } catch (err) {
+      console.error("loadSuggestions error:", err);
+      setMessage("Fehler beim Laden: " + (err.message || "Unbekannter Fehler"));
+    }
   }
 
   useEffect(() => {
@@ -270,34 +280,39 @@ function Suggestions({ playerName }) {
       return;
     }
 
-    setLoading(true);
-    setMessage("");
+    try {
+      setLoading(true);
+      setMessage("");
 
-    const { data, error } = await supabase
-      .from("game_suggestions")
-      .insert([
-        {
-          player_name: playerName?.trim() || "Anonym",
-          game_name: gameName.trim(),
-          details: details.trim() || null,
-        },
-      ])
-      .select();
+      const { data, error } = await supabase
+        .from("game_suggestions")
+        .insert([
+          {
+            player_name: playerName?.trim() || "Anonym",
+            game_name: gameName.trim(),
+            details: details.trim() || null,
+          },
+        ])
+        .select();
 
-    setLoading(false);
+      if (error) {
+        setMessage("Fehler: " + error.message);
+        return;
+      }
 
-    if (error) {
-      setMessage("Fehler: " + error.message);
-      return;
+      if (data && data.length > 0) {
+        setItems((prev) => [data[0], ...prev].slice(0, 8));
+      }
+
+      setGameName("");
+      setDetails("");
+      setMessage("Vorschlag gespeichert.");
+    } catch (err) {
+      console.error("submitSuggestion error:", err);
+      setMessage("Fehler: " + (err.message || "Unbekannter Fehler"));
+    } finally {
+      setLoading(false);
     }
-
-    if (data && data.length > 0) {
-      setItems((prev) => [data[0], ...prev].slice(0, 8));
-    }
-
-    setGameName("");
-    setDetails("");
-    setMessage("Vorschlag gespeichert.");
   }
 
   return (
