@@ -51,7 +51,7 @@ textarea {
 }
 
 .container.wide {
-  max-width: 1700px;
+  max-width: 1600px;
 }
 
 .hero-card,
@@ -223,7 +223,7 @@ textarea {
   text-align: center;
   margin-top: 0;
   margin-bottom: 6px;
-  font-size: clamp(28px, 4vw, 46px);
+  font-size: clamp(28px, 4vw, 42px);
 }
 
 .board-subtitle {
@@ -258,7 +258,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
-  width: min(100%, 340px);
+  width: min(100%, 320px);
   min-width: 0;
 }
 
@@ -327,7 +327,7 @@ textarea {
   }
 
   .ultimate-grid {
-    width: min(100%, 520px);
+    width: min(100%, 460px);
     gap: 6px;
   }
 
@@ -373,7 +373,7 @@ textarea {
   }
 
   .ultimate-grid {
-    width: min(100%, 760px);
+    width: min(100%, 620px);
     gap: 8px;
   }
 
@@ -403,11 +403,11 @@ textarea {
   }
 
   .info-grid {
-    grid-template-columns: repeat(3, minmax(260px, 1fr));
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
   }
 
   .ultimate-grid {
-    width: min(100%, 900px);
+    width: min(100%, 700px);
     gap: 10px;
   }
 
@@ -418,18 +418,18 @@ textarea {
 
   .small-board-overlay {
     border-radius: 14px;
-    font-size: 40px;
+    font-size: 38px;
   }
 
   .cell {
     border-radius: 10px;
-    font-size: 24px;
+    font-size: 22px;
   }
 }
 
 @media (min-width: 1600px) {
   .ultimate-grid {
-    width: min(100%, 980px);
+    width: min(100%, 760px);
     gap: 12px;
   }
 }
