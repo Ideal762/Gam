@@ -11,6 +11,8 @@ body,
 
 body {
   background: #0b1120;
+  color: white;
+  font-family: Arial, sans-serif;
 }
 
 button,
@@ -41,6 +43,7 @@ textarea {
   margin: 0 auto;
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .container.small {
@@ -48,7 +51,7 @@ textarea {
 }
 
 .container.wide {
-  max-width: 1800px;
+  max-width: 1700px;
 }
 
 .hero-card,
@@ -67,6 +70,7 @@ textarea {
 .panel h1,
 .panel h2 {
   margin-top: 0;
+  margin-bottom: 8px;
 }
 
 .hero-card p,
@@ -102,6 +106,11 @@ textarea {
   border: none;
   font-weight: 700;
   cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.btn:hover {
+  opacity: 0.94;
 }
 
 .btn.green {
@@ -202,17 +211,54 @@ textarea {
   color: #7dd3fc;
   font-size: 18px;
   margin-top: 0;
+  margin-bottom: 18px;
+}
+
+.board-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.board-title {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: clamp(28px, 4vw, 46px);
+}
+
+.board-subtitle {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.board-toolbar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.board-mode-label {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1e293b;
+  color: white;
+  font-weight: 700;
+}
+
+.ultimate-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .ultimate-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-
-  width: 100%;
-  max-width: 900px;   /* maximale Größe */
-  margin: 0 auto;     /* zentriert */
-
+  gap: 4px;
+  width: min(100%, 340px);
   min-width: 0;
 }
 
@@ -265,6 +311,46 @@ textarea {
   cursor: not-allowed;
 }
 
+.online-lobby-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.online-feature-list {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 700px) {
+  .page {
+    padding: 16px;
+  }
+
+  .ultimate-grid {
+    width: min(100%, 520px);
+    gap: 6px;
+  }
+
+  .small-board {
+    padding: 4px;
+    border-radius: 11px;
+  }
+
+  .small-board-grid {
+    gap: 4px;
+  }
+
+  .small-board-overlay {
+    font-size: 28px;
+    border-radius: 11px;
+  }
+
+  .cell {
+    font-size: 18px;
+    border-radius: 8px;
+  }
+}
+
 @media (min-width: 900px) {
   .page {
     padding: 20px;
@@ -278,7 +364,16 @@ textarea {
     grid-template-columns: repeat(3, minmax(180px, 1fr));
   }
 
+  .online-lobby-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .online-feature-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .ultimate-grid {
+    width: min(100%, 760px);
     gap: 8px;
   }
 
@@ -312,7 +407,8 @@ textarea {
   }
 
   .ultimate-grid {
-    gap: 12px;
+    width: min(100%, 900px);
+    gap: 10px;
   }
 
   .small-board {
@@ -322,11 +418,18 @@ textarea {
 
   .small-board-overlay {
     border-radius: 14px;
-    font-size: 42px;
+    font-size: 40px;
   }
 
   .cell {
     border-radius: 10px;
     font-size: 24px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .ultimate-grid {
+    width: min(100%, 980px);
+    gap: 12px;
   }
 }
