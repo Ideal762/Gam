@@ -95,10 +95,11 @@ function shellStyle(isMobile) {
 function containerStyle(isDesktop) {
   return {
     width: "100%",
-    maxWidth: isDesktop ? "1600px" : "1400px",
+    maxWidth: isDesktop ? "1800px" : "1450px",
     margin: "0 auto",
     display: "grid",
     gap: "16px",
+    minWidth: 0,
   };
 }
 
@@ -110,6 +111,8 @@ function cardStyle() {
     padding: "16px",
     boxSizing: "border-box",
     boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+    width: "100%",
+    minWidth: 0,
   };
 }
 
@@ -134,6 +137,12 @@ function buttonStyle(bg = "#38bdf8", color = "#07111f") {
     color,
     fontWeight: "bold",
     cursor: "pointer",
+  };
+}
+
+function secondaryButtonStyle() {
+  return {
+    ...buttonStyle("#334155", "white"),
   };
 }
 
@@ -181,7 +190,13 @@ function SmallBoard({
         minWidth: 0,
       }}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? "3px" : "4px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: isMobile ? "3px" : "4px",
+        }}
+      >
         {board.map((cell, cellIndex) => (
           <Cell
             key={cellIndex}
@@ -287,9 +302,22 @@ function Suggestions({ playerName }) {
 
   return (
     <div style={cardStyle()}>
-      <h2 style={{ marginTop: 0 }}>Spiel vorschlagen</h2>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "10px",
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <h2 style={{ marginTop: 0, marginBottom: 0 }}>Spiel vorschlagen</h2>
+        <button onClick={loadSuggestions} style={secondaryButtonStyle()}>
+          Aktualisieren
+        </button>
+      </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} style={{ marginTop: "14px" }}>
         <input
           value={gameName}
           onChange={(e) => setGameName(e.target.value)}
@@ -345,6 +373,19 @@ function Suggestions({ playerName }) {
   );
 }
 
+function RulesCard() {
+  return (
+    <div style={cardStyle()}>
+      <h2 style={{ marginTop: 0 }}>Kurzregeln</h2>
+      <div style={{ color: "#cbd5e1", lineHeight: 1.6 }}>
+        Wenn du in einem kleinen Feld spielst, schickst du den Gegner in das entsprechende
+        nächste kleine Feld. Gewonnene kleine Felder zählen im großen Brett. Drei kleine
+        Siege in einer Reihe gewinnen das ganze Spiel.
+      </div>
+    </div>
+  );
+}
+
 function HomeScreen({
   playerName,
   setPlayerName,
@@ -392,64 +433,69 @@ function HomeScreen({
             gridTemplateColumns: isMobile
               ? "1fr"
               : isTablet
-              ? "1.2fr 1fr"
+              ? "1.15fr 1fr"
               : "1.7fr 1fr",
             gap: "16px",
             alignItems: "start",
           }}
         >
-          <div style={cardStyle()}>
-            <h2 style={{ marginTop: 0 }}>Spiele</h2>
+          <div style={{ display: "grid", gap: "16px", minWidth: 0 }}>
+            <div style={cardStyle()}>
+              <h2 style={{ marginTop: 0 }}>Spiele</h2>
 
-            <div style={{ display: "grid", gap: "12px" }}>
-              <div style={{ ...cardStyle(), padding: "16px", background: "#1e3a8a" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong style={{ fontSize: "20px" }}>Ultimate Tic-Tac-Toe</strong>
-                  <span
+              <div style={{ display: "grid", gap: "12px" }}>
+                <div style={{ ...cardStyle(), padding: "16px", background: "#1e3a8a" }}>
+                  <div
                     style={{
-                      background: "#22c55e",
-                      color: "#07111f",
-                      borderRadius: "999px",
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      fontWeight: "bold",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
                     }}
                   >
-                    Live
-                  </span>
+                    <strong style={{ fontSize: "20px" }}>Ultimate Tic-Tac-Toe</strong>
+                    <span
+                      style={{
+                        background: "#22c55e",
+                        color: "#07111f",
+                        borderRadius: "999px",
+                        padding: "4px 10px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Live
+                    </span>
+                  </div>
+
+                  <p style={{ marginBottom: "14px", color: "#cbd5e1" }}>
+                    Lokal 1v1 oder Online mit Raumcode.
+                  </p>
+
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <button onClick={onStartLocal} style={buttonStyle("#22c55e")}>
+                      Lokal 1v1
+                    </button>
+                    <button onClick={onStartOnline} style={buttonStyle("#38bdf8")}>
+                      Online 1v1
+                    </button>
+                  </div>
                 </div>
 
-                <p style={{ marginBottom: "14px", color: "#cbd5e1" }}>
-                  Lokal 1v1 oder Online mit Raumcode.
-                </p>
-
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <button onClick={onStartLocal} style={buttonStyle("#22c55e")}>
-                    Lokal 1v1
-                  </button>
-                  <button onClick={onStartOnline} style={buttonStyle("#38bdf8")}>
-                    Online 1v1
-                  </button>
+                <div style={{ ...cardStyle(), padding: "16px", background: "#0f172a" }}>
+                  <strong style={{ fontSize: "20px" }}>Classic Tic-Tac-Toe</strong>
+                  <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
                 </div>
-              </div>
 
-              <div style={{ ...cardStyle(), padding: "16px", background: "#0f172a" }}>
-                <strong style={{ fontSize: "20px" }}>Classic Tic-Tac-Toe</strong>
-                <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
-              </div>
-
-              <div style={{ ...cardStyle(), padding: "16px", background: "#0f172a" }}>
-                <strong style={{ fontSize: "20px" }}>Connect Four</strong>
-                <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
+                <div style={{ ...cardStyle(), padding: "16px", background: "#0f172a" }}>
+                  <strong style={{ fontSize: "20px" }}>Connect Four</strong>
+                  <p style={{ marginBottom: 0, color: "#cbd5e1" }}>Kommt später.</p>
+                </div>
               </div>
             </div>
+
+            <RulesCard />
           </div>
 
           <Suggestions playerName={playerName} />
@@ -468,7 +514,6 @@ function OnlineLobbyScreen({
   onJoin,
   error,
   isMobile,
-  isTablet,
   isDesktop,
 }) {
   return (
@@ -491,7 +536,7 @@ function OnlineLobbyScreen({
               </p>
             </div>
 
-            <button onClick={onBack} style={buttonStyle("#334155", "white")}>
+            <button onClick={onBack} style={secondaryButtonStyle()}>
               ← Zurück
             </button>
           </div>
@@ -552,6 +597,7 @@ function UltimateBoard({
     () => getActiveBoards(gameState.boards, gameState.nextBoard, meta),
     [gameState.boards, gameState.nextBoard, meta]
   );
+  const [copied, setCopied] = useState(false);
 
   let status = "";
   if (meta.bigWinner) status = `Spieler ${meta.bigWinner} gewinnt das Spiel`;
@@ -559,6 +605,17 @@ function UltimateBoard({
   else if (isLocal) status = `Spieler ${gameState.currentPlayer} ist dran`;
   else if (gameState.currentPlayer === mySymbol) status = `Du bist dran (${mySymbol})`;
   else status = `Warte auf ${gameState.currentPlayer}`;
+
+  async function copyRoomCode() {
+    if (!roomCode) return;
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
 
   return (
     <div style={shellStyle(isMobile)}>
@@ -573,16 +630,29 @@ function UltimateBoard({
               alignItems: "center",
             }}
           >
-            <button onClick={onBack} style={buttonStyle("#334155", "white")}>
+            <button onClick={onBack} style={secondaryButtonStyle()}>
               ← Zurück
             </button>
 
-            <div style={{ color: "#cbd5e1" }}>
+            <div
+              style={{
+                color: "#cbd5e1",
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
               {isLocal ? (
                 <strong style={{ color: "white" }}>Lokal 1v1</strong>
               ) : (
                 <>
-                  Raumcode: <strong style={{ color: "white" }}>{roomCode}</strong>
+                  <span>
+                    Raumcode: <strong style={{ color: "white" }}>{roomCode}</strong>
+                  </span>
+                  <button onClick={copyRoomCode} style={secondaryButtonStyle()}>
+                    {copied ? "Kopiert" : "Code kopieren"}
+                  </button>
                 </>
               )}
             </div>
@@ -592,7 +662,11 @@ function UltimateBoard({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(220px, 1fr))",
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : isTablet
+              ? "repeat(3, minmax(180px, 1fr))"
+              : "repeat(3, minmax(260px, 1fr))",
             gap: "12px",
           }}
         >
@@ -620,7 +694,7 @@ function UltimateBoard({
           </div>
         </div>
 
-        <div style={cardStyle()}>
+        <div style={{ ...cardStyle(), minWidth: 0 }}>
           <h1 style={{ textAlign: "center", marginTop: 0, fontSize: "clamp(28px, 4vw, 40px)" }}>
             {title}
           </h1>
@@ -633,19 +707,15 @@ function UltimateBoard({
             </button>
           </div>
 
-          <div
-            style={{
-              width: "100%",
-              overflowX: "hidden",
-            }}
-          >
+          <div style={{ width: "100%", minWidth: 0 }}>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                 gap: isMobile ? "4px" : isTablet ? "8px" : "12px",
                 width: "100%",
                 minWidth: 0,
+                alignItems: "stretch",
               }}
             >
               {gameState.boards.map((board, boardIndex) => (
@@ -664,6 +734,8 @@ function UltimateBoard({
             </div>
           </div>
         </div>
+
+        <RulesCard />
       </div>
     </div>
   );
@@ -846,7 +918,10 @@ export default function App() {
 
   async function resetOnlineRoom() {
     if (!room) return;
-    const nextState = createUltimateState(room.state.players?.X || "Host", room.state.players?.O || null);
+    const nextState = createUltimateState(
+      room.state.players?.X || "Host",
+      room.state.players?.O || null
+    );
     await saveOnlineState(nextState);
   }
 
